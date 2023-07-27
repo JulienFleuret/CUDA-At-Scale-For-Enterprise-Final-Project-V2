@@ -16,6 +16,14 @@ if (CUDA_FOUND)
 
     # Automatic finding of the architecture"
 
+    # Find nvidia-smi executable
+    find_program(NVIDIA_SMI_EXECUTABLE nvidia-smi)
+
+    # Check if nvidia-smi was found
+    if(NOT NVIDIA_SMI_EXECUTABLE)
+        message(FATAL_ERROR "nvidia-smi not found!")
+    endif()
+
     # Step 1) Execute nvidia-smi command to get the architectures
     execute_process(COMMAND nvidia-smi --query-gpu=compute_cap --format=csv OUTPUT_VARIABLE GPU_INFO)
 
