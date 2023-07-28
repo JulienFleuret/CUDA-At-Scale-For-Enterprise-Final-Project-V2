@@ -42,21 +42,30 @@ endforeach()
 enable_language(CUDA)
 
 
-#try to help with opencv
-#if (EXISTS /usr/local/opencv)
-#set(OpenCV_CMAKE_ROOT_DIR /usr/local/opencv/lib/cmake)
-#elseif(EXISTS /usr/lib/x86_64-linux-gnu/cmake)
-set(OpenCV_CMAKE_ROOT_DIR /usr/lib/x86_64-linux-gnu/cmake/opencv4)
-#endif()
+#Find the proper OpenCV
 
+#Check if a local instalation exists or not and adjust the path to the cmake configuration file accordingly.
+if (EXISTS /usr/local/opencv)
+set(OpenCV_CMAKE_ROOT_DIR /usr/local/opencv/lib/cmake)
+elseif(EXISTS /usr/lib/x86_64-linux-gnu/cmake)
+set(OpenCV_CMAKE_ROOT_DIR /usr/lib/x86_64-linux-gnu/cmake)
+endif()
+
+message("OpenCV_CMAKE_ROOT_DIR : ${OpenCV_CMAKE_ROOT_DIR}")
+
+#Find where is the file. This step is disociate from the previous because the folder after OpenCV_CMAKE_ROOT_DIR has a version in its naming.
 execute_process(
     COMMAND find ${OpenCV_CMAKE_ROOT_DIR} -name OpenCVConfig.cmake -type f -print
     OUTPUT_VARIABLE OpenCVConfigFile
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+message("OpenCVConfigFile : ${OpenCVConfigFile}")
+
+
+#Keep only the path.
 get_filename_component(OpenCV_DIR ${OpenCVConfigFile} DIRECTORY)
 
-
+#Look for OpenCV.
 find_package(OpenCV REQUIRED core imgcodecs highgui)
 
 
