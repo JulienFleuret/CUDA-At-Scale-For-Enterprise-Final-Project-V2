@@ -51,15 +51,11 @@ elseif(EXISTS /usr/lib/x86_64-linux-gnu/cmake)
 set(OpenCV_CMAKE_ROOT_DIR /usr/lib/x86_64-linux-gnu/cmake)
 endif()
 
-message("OpenCV_CMAKE_ROOT_DIR : ${OpenCV_CMAKE_ROOT_DIR}")
-
 #Find where is the file. This step is disociate from the previous because the folder after OpenCV_CMAKE_ROOT_DIR has a version in its naming.
 execute_process(
     COMMAND find ${OpenCV_CMAKE_ROOT_DIR} -name OpenCVConfig.cmake -type f -print
     OUTPUT_VARIABLE OpenCVConfigFile
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-message("OpenCVConfigFile : ${OpenCVConfigFile}")
 
 
 #Keep only the path.
@@ -75,6 +71,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(cudaAtScaleV2 main.cu types.cuh types.cu utils.cuh utils.cu)
 
+set_target_properties(cudaAtScaleV2 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 
 set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
