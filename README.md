@@ -34,4 +34,4 @@ Configuration file.
 Run this file in order to compile the project.
 
 ```Dockerfile```
-Docker image, broken at the moment, update in progress.
+Docker image.
