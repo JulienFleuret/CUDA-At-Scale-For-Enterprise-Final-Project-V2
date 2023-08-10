@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     try
     {
         // Step -2) Parse the inputs. Let the user giving a filename.
-        String keys = "{help h usage ? | | print this message}{path | | folder to where to select the images}{filename | | image to process }{device |0| which gpu to use (in case of multi-gpu computer)}";
+        String keys = "{help h usage ? | | print this message}{path folder fd | | folder to where to select the images}{filename fn f input_filename if | | image to process }{device |0| which gpu to use (in case of multi-gpu computer)}";
 
         CommandLineParser parser(argc, argv, keys);
 
