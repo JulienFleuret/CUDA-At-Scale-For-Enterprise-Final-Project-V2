@@ -78,7 +78,11 @@ set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
 
 set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
-set(CMAKE_CUDA_FLAGS "-m64 --compiler-options -fno-strict-aliasing -use_fast_math --ptxas-options=-v --std=c++17 --expt-relaxed-constexpr --extended-lambda -O3 --display-error-number --source-in-ptx -v")
+set(CMAKE_CUDA_FLAGS "-m64 --compiler-options -fno-strict-aliasing -use_fast_math --std=c++17 --expt-relaxed-constexpr --extended-lambda -O3 --display-error-number --source-in-ptx")
+
+if (NOT EXISTS ${CMAKE_SOURCE_DIR}/bin)
+    file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+endif()
 
 set_target_properties(cudaAtScaleV2 PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 

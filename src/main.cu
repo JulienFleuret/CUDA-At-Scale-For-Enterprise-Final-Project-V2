@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     try
     {
         // Step -2) Parse the inputs. Let the user giving a filename.
-        String keys = "{help h usage ? | | print this message}{path | | folder to where to select the images}{filename | | image to process (by default an image will be randomly selected)}{device |0| which gpu to use (in case of multi-gpu computer)}";
+        String keys = "{help h usage ? | | print this message}{path | | folder to where to select the images}{filename | | image to process }{device |0| which gpu to use (in case of multi-gpu computer)}";
 
         CommandLineParser parser(argc, argv, keys);
 
@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
 
         check_cuda_error_or_npp_status(cudaMemcpy2D(device_image.ptr(), device_image.pitch(), host_image.ptr(), host_image.step, host_image.cols * host_image.elemSize(), host_image.rows, cudaMemcpyHostToDevice));
 
-        NppiPoint anchor = {0,0};
+//        NppiPoint anchor = {0,0};
         NppiPoint offset = {0,0};
 
         NppStreamContext context;
