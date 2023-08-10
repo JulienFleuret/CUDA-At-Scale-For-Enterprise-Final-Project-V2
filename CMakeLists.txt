@@ -74,10 +74,13 @@ add_executable(cudaAtScaleV2 src/main.cu src/types.cuh src/types.cu src/utils.cu
 
 set_target_properties(cudaAtScaleV2 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
+set(CMAKE_EXECUTABLE_SUFFIX ".exe")
+
 
 set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 set(CMAKE_CUDA_FLAGS "-m64 --compiler-options -fno-strict-aliasing -use_fast_math --ptxas-options=-v --std=c++17 --expt-relaxed-constexpr --extended-lambda -O3 --display-error-number --source-in-ptx -v")
 
+set_target_properties(cudaAtScaleV2 PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 
 target_include_directories(cudaAtScaleV2 PRIVATE ${CUDA_INCLUDE_DIRS})
