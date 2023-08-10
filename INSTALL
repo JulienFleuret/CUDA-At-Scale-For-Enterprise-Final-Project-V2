@@ -1,8 +1,9 @@
-This files depends on CUDA, NPPI and OpenCV.
+This project depends on CUDA, NPPI, and OpenCV.
 
-I do advice you to install CUDA using this NVIDIA Developer webpage: https://developer.nvidia.com/cuda-downloads
-In such case the installed CUDA also contains NPPI files. If you installed cuda using the apt repositories, some adjustments in the CMakeLists.txt file might be required.
-You may also want to install libnppic, libnppif, and libnppisu.
+To install CUDA, I recommend visiting the NVIDIA Developer webpage at https://developer.nvidia.com/cuda-downloads. You can download and install CUDA from there. Note that if you install CUDA using the apt repositories, you may need to make some adjustments in the CMakeLists.txt file.
 
-For OpenCV I do advise you to install it through: "apt install -y libopencv-dev"
-OpenCV is used for the display and file reading operations.
+For NPPI, if you install CUDA using the recommended method, it will already include the necessary NPPI files.
+
+Additionally, you may want to install libnppic, libnppif, and libnppisu.
+
+To install OpenCV, you can use the following command: apt install -y libopencv-dev. OpenCV is used for display and file reading operations in this project.
