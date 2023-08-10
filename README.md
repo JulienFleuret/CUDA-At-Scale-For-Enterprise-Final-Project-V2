@@ -31,7 +31,7 @@ This files gives some advise regarding how to install the dependencies of this p
 Configuration file.
 
 ```run.sh```
-An optional script used to run your executable code, either with or without command-line arguments.
+Run this file in order to compile the project.
 
 ```Dockerfile```
 Docker image, broken at the moment, update in progress.
