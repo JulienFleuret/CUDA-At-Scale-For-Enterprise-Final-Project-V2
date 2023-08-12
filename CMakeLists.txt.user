@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 9.0.1, 2023-07-27T14:19:56. -->
+<!-- Written by QtCreator 9.0.1, 2023-08-12T13:47:22. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -385,13 +385,13 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">cudaAtScaleV2</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.cudaAtScaleV2</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">cudaAtScaleV2</value>
-    <value type="QString" key="RunConfiguration.Arguments">-filename=/home/smile/lib_dir/opencv_dir/OCV_500-pre/opencv/samples/data/squirrel_cls.jpg</value>
+    <value type="QString" key="RunConfiguration.Arguments">-input_filename=/home/smile/lib_dir/opencv_dir/OCV_500-pre/opencv/samples/data/squirrel_cls.jpg -ofd=output</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/home/smile/prog/build-cudaAtScaleV2-Desktop_Qt_6_6_0_GCC_64bit-Debug</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/home/smile/prog/cudaAtScaleV2/bin</value>
    </valuemap>
    <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">1</value>
   </valuemap>
