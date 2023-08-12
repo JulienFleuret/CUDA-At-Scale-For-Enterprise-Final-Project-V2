@@ -86,6 +86,7 @@ endif()
 
 set_target_properties(cudaAtScaleV2 PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
+message("OCV DIR: ${OpenCV_INCLUDE_DIRS}")
 
 target_include_directories(cudaAtScaleV2 PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_directories(cudaAtScaleV2 PRIVATE ${CUDA_TOOLKIT_ROOT_DIR}/lib)

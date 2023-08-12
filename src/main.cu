@@ -6,6 +6,8 @@
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
+#include <regex>
+#include <forward_list>
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/cuda.hpp>
@@ -60,15 +62,21 @@ __global__ void k_mag(Fun_t fun, const Npp8u* __restrict__ dX, const Npp8u*  __r
 
 int main(int argc, char* argv[])
 {
+    // This is to ensure that if an exeception is throwns the program will have a safe ending.
     try
     {
         // Step -2) Parse the inputs. Let the user giving a filename.
-        String keys = "{help h usage ? | | print this message}{path folder fd | | folder to where to select the images}{filename fn f input_filename if | | image to process }{device |0| which gpu to use (in case of multi-gpu computer)}";
+        String keys = "{help h usage ?|| print this message}"
+                      "{input_path input_folder ifd| | folder where the input image is.}"
+                      "{input_filename if| | name of the image to load }"
+                      "{output_path output_folder ofd| | folder where to save the processed image.}"
+                      "{output_filename of| | name of file of the processed image.}"
+                      "{device|0| which gpu to use (in case of multi-gpu computer).}";
 
         CommandLineParser parser(argc, argv, keys);
 
-        String filename;
-        String folder;
+        String input_filename, output_filename;
+        String input_folder, output_folder;
         int gpuid(0);
 
         //I case help is required.
@@ -95,34 +103,83 @@ int main(int argc, char* argv[])
                 cudaSetDevice(gpuid);
         }
 
+        // Get the CLI arguments.
 
-        // Get the image folder path, is there is any.
-        if(parser.has("path"))
-            folder = parser.get<String>("path");
+        // Get the input image folder path, is there is any.
+        if(parser.has("input_path"))
+            input_folder = parser.get<String>("input_path");
 
-        // Get the filename.
-        if(parser.has("filename"))
-            filename = parser.get<String>("filename");
+        // Get the input filename.
+        if(parser.has("input_filename"))
+            input_filename = parser.get<String>("input_filename");
+
+        bool do_save = parser.has("output_filename") || parser.has("output_folder");
 
 
-        // If the filename is empty, then end the program normaly.
-        if(filename.empty())
+        // Get the output image folder path, is there is any.
+        if(parser.has("output_path"))
+            output_folder = parser.get<String>("output_path");
+
+        // Get the output filename.
+        if(parser.has("output_filename"))
+            output_filename = parser.get<String>("output_filename");
+
+        // Process the CLI arguments.
+
+        if(do_save && output_folder.empty() && !output_filename.empty())
+            output_folder = "output";
+
+        // If an output directory was set, but not an output_filename.
+        if(do_save && !output_folder.empty() && output_filename.empty())
+        {
+            // If the variable "input_filename" contains only a filename, e.g. "squirel.jpg"
+            if(input_filename.find("/") == string::npos)
+            {
+                output_filename = input_filename;
+            }
+            else // If the variable "input_filename" contains a full path with the filename, e.g. "data/squirel.jpg"
+            {
+                // Step 1) split the input string aroung the character '/'.
+                std::regex pattern("/");
+
+                std::forward_list<String> elements;
+
+                for(auto it = std::sregex_token_iterator(input_filename.begin(), input_filename.end(), pattern, -1); it != std::sregex_token_iterator(); ++it)
+                    elements.push_front(*it);
+
+                // Step 2) assign the filename. Note: becase the forward_list just have push_front method, the filename is the first element of the list.
+                output_filename = elements.front();
+            }
+        }
+
+
+        // If the input filename is empty, then end the program normaly.
+        if(input_filename.empty())
         {
             std::cout<<"The Filename Is Missing! Please Specify A Filename!"<<std::endl;
             return EXIT_SUCCESS; //Why EXIT_SUCCESS? Because a missing or wrong argument is not a faillure but a misusage.
         }
 
-        // If the folder was set, then added it to the filename.
-        if(!folder.empty())
-            filename = utils::fs::join(folder, filename);
+        // If the input folder was set, then added it to the filename.
+        if(!input_folder.empty())
+            input_filename = utils::fs::join(input_folder, input_filename);
 
-        // Check if the filename exists, otherwise end the program normaly.
-        if(!utils::fs::exists(filename))
+        // Check if the input filename exists, otherwise end the program normaly.
+        if(!utils::fs::exists(input_filename))
         {
-            std::cout<<"The Specified Filename: '"<<filename<<"' Does Not Exists!"<<std::endl;
+            std::cout<<"The Specified Filename: '"<<input_filename<<"' Does Not Exists!"<<std::endl;
             return EXIT_SUCCESS;
         }
 
+        // If an output directory was specify but does not exists yet, it is created.
+        if(!output_folder.empty() && !utils::fs::exists(output_folder))
+            utils::fs::createDirectories(output_folder);
+
+        // If we are going to save the data, then join the output folder path, with the filename.
+        if(do_save)
+            output_filename = utils::fs::join(output_folder, output_filename);
+
+        //---------------------------------------------------------------------------------------------------------------------------------------------------------
         // Start the program.
 
         // Step -1) Create the streams and events.
@@ -136,7 +193,7 @@ int main(int argc, char* argv[])
         event2.create();
 
         // Step 0) Read The Image.
-        Mat host_image = imread(filename, IMREAD_GRAYSCALE);
+        Mat host_image = imread(input_filename, IMREAD_GRAYSCALE);
 
         const int rows = host_image.rows;
         const int cols = host_image.cols;
@@ -179,7 +236,7 @@ int main(int argc, char* argv[])
         event2.record();
 
 
-        // Step 3 Compute Magnitude.
+        // Step 3) Compute Magnitude.
 
         Mag.create(rows, cols);
 
@@ -226,19 +283,27 @@ int main(int argc, char* argv[])
         dX.release();
         dY.release();
 
-        // Step 4) Visualization.
+        // Step 4) device -> host
 
         Mat1b host_mag(rows, cols);
 
         check_cuda_error_or_npp_status(cudaMemcpy2D(host_mag.ptr(), host_mag.step, Mag.ptr(), Mag.pitch(), cols, rows, cudaMemcpyDeviceToHost));
 
+        // Step 5) saving if required.
+
+        if(do_save)
+        {
+            cv::imwrite(output_filename, host_mag);
+        }
+
+        // Step 6) Visualization.
 
         cv::imshow("Magnitude", host_mag);
 
         cv::waitKey(-1);
 
     }
-    catch(std::exception& err)
+    catch(std::exception& err) // OpenCV's exception derivates from std::exceptions.
     {
         std::clog<<"An Error Has Occured: "<<err.what()<<std::endl;
         return EXIT_FAILURE;
