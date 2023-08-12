@@ -54,7 +54,7 @@ __global__ void k_mag(Fun_t fun, const Npp8u* __restrict__ dX, const Npp8u*  __r
     // for the current location.
     const Npp8u* __restrict__ dX_current = dX + y * d_dxStep + x;
     const Npp8u* __restrict__ dY_current = dY + y * d_dyStep + x;
-    Npp8u* dst_current = (dst + y * d_dstStep + x);
+    Npp8u* __restrict__ dst_current = (dst + y * d_dstStep + x);
 
     // Process.
     *dst_current = fun(*dX_current, *dY_current);
