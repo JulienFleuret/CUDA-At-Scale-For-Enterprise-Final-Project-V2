@@ -22,6 +22,7 @@ using namespace cv;
 using namespace cas;
 
 
+
 // Usefull variables.
 __constant__ int d_rows;
 __constant__ int d_cols;
@@ -60,20 +61,26 @@ __global__ void k_mag(Fun_t fun, const Npp8u* __restrict__ dX, const Npp8u*  __r
     *dst_current = fun(*dX_current, *dY_current);
 }
 
+
+
 int main(int argc, char* argv[])
 {
     // This is to ensure that if an exeception is throwns the program will have a safe ending.
     try
     {
+
         // Step -2) Parse the inputs. Let the user giving a filename.
         String keys = "{help h usage ?|| print this message}"
                       "{input_path input_folder ifd| | folder where the input image is.}"
                       "{input_filename if| | name of the image to load }"
                       "{output_path output_folder ofd| | folder where to save the processed image.}"
                       "{output_filename of| | name of file of the processed image.}"
+                      "{no_display nd|false| activate or deactivate the display of the source and destination images}"
                       "{device|0| which gpu to use (in case of multi-gpu computer).}";
 
         CommandLineParser parser(argc, argv, keys);
+
+        parser.about("cudaAtScale.exe");
 
         String input_filename, output_filename;
         String input_folder, output_folder;
@@ -123,6 +130,8 @@ int main(int argc, char* argv[])
         // Get the output filename.
         if(parser.has("output_filename"))
             output_filename = parser.get<String>("output_filename");
+
+        bool do_display = (parser.has("no_display") && !static_cast<bool>(parser.get<int>("no_display")));
 
         // Process the CLI arguments.
 
@@ -198,7 +207,8 @@ int main(int argc, char* argv[])
         const int rows = host_image.rows;
         const int cols = host_image.cols;
 
-        cv::imshow("source", host_image);
+        if(do_display)
+            cv::imshow("source", host_image);
 
         // Step 1) Upload The Image On The Device.
         nppiMatrix_t<Npp8u> device_image(rows, cols), dX, dY, Mag;
@@ -298,9 +308,12 @@ int main(int argc, char* argv[])
 
         // Step 6) Visualization.
 
+        if(do_display)
+        {
         cv::imshow("Magnitude", host_mag);
 
         cv::waitKey(-1);
+        }
 
     }
     catch(std::exception& err) // OpenCV's exception derivates from std::exceptions.
@@ -309,6 +322,5 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    cout << "Hello World!" << endl;
     return EXIT_SUCCESS;
 }
