@@ -1,0 +1,30 @@
+name: C/C++ CI
+
+on:
+  push:
+      branches: [ main ]
+  pull_request:
+      branches: [ main ]
+      
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up CUDA
+        uses: nvidia/cuda-github-action@v2
+        with:
+          cuda-version: 12.2
+          
+      - name: Build Unit Test
+        run: |
+          cd test
+          make
+          
+      - name: Run tests
+        run: |
+          cd test
+          test
