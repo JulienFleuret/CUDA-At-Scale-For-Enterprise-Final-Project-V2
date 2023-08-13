@@ -40,5 +40,5 @@ jobs:
       - name: Run tests
         run: |
           cd test
-          ./test
+          test
 
