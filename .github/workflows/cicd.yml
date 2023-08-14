@@ -34,7 +34,7 @@ jobs:
           
       - name: Build Unit Test
         run: |
-          chmod +x
+          chmod +x run.sh
           ./run.sh
           cd ../test
           make
