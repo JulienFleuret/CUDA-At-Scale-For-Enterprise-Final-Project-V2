@@ -46,10 +46,10 @@ jobs:
             PGHOST: localhost
             PGUSER: postgres
 
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_MESSAGE: ${{join(steps.run_tests.outputs.*, '\n')}}
-          SLACK_TITLE: CI Test Suite
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+#      - name: Slack Notification
+#        uses: rtCamp/action-slack-notify@v2
+#        env:
+#          SLACK_MESSAGE: ${{join(steps.run_tests.outputs.*, '\n')}}
+#          SLACK_TITLE: CI Test Suite
+#          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
