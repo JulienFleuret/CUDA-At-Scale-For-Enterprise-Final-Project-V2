@@ -41,8 +41,8 @@ jobs:
           
       - name: Run tests
         run: |
-          cd bin
-          chmod +x cudaAtScaleV2.exe          
-          cd ../test
+          cd test
+          echo $(test 1) >> GITHUB_OUTPUT
+          echo $(test 2) >> GITHUB_OUTPUT
           test
 
