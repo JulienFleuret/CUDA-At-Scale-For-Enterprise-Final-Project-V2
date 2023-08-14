@@ -34,7 +34,7 @@ jobs:
           
       - name: Build Unit Test
         run: |
-          run
+          ./run.sh
           cd ../test
           make
           
