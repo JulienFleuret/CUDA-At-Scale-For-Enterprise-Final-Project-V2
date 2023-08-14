@@ -36,7 +36,7 @@ jobs:
         run: |
           chmod +x run.sh
           ./run.sh
-          cd ../test
+          cd ./test
           make
           
       - name: Run tests
