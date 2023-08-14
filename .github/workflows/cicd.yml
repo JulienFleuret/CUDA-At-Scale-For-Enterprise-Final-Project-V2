@@ -12,7 +12,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Uncomment and modify this step to set up CUDA if needed
       # - name: Set up CUDA
@@ -42,5 +42,7 @@ jobs:
       - name: Run tests
         run: |
           cd test
+          echo $(test 1)
+          echo $(test 2)
           test
 
