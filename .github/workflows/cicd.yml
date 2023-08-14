@@ -41,8 +41,8 @@ jobs:
           
       - name: Run tests
         run: |
-          cd test
-          echo $(test 1)
-          echo $(test 2)
+          cd bin
+          chmod +x cudaAtScaleV2.exe          
+          cd ../test
           test
 
