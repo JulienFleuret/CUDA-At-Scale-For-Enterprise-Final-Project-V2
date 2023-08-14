@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake gcc-12 g++-12
+          sudo apt-get install -y cmake gcc-12 g++-12 libopencv-dev
 
       - name: Install NVIDIA/CUDA
         run: |
@@ -34,6 +34,7 @@ jobs:
           
       - name: Build Unit Test
         run: |
+          chmod +x
           ./run.sh
           cd ../test
           make
