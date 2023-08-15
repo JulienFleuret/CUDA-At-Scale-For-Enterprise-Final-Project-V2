@@ -36,8 +36,6 @@ jobs:
       - name: Run tests
         run: |
           cd test
-#          echo $(test 1) >> $GITHUB_OUTPUT
-#          echo $(test 2) >> $GITHUB_OUTPUT
           test
         id: run_tests
         env:
