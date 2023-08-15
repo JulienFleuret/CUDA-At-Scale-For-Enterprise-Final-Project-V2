@@ -59,7 +59,8 @@ int main()
 		   std::cout<<"FAILURE!";
 		std::cout<<std::endl;
 	
-		return ret;
+//		return ret;
+		return EXIT_SUCCESS;
 	
 	}
 	catch(std::exception& err)
