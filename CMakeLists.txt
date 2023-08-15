@@ -68,9 +68,8 @@ find_package(OpenCV REQUIRED core imgcodecs highgui)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_definitions(-D__WARMUP_CALL__)
 
-add_executable(cudaAtScaleV2 src/main.cu src/types.cuh src/types.cu src/utils.cuh src/utils.cu)
+add_executable(cudaAtScaleV2 src/main.cu src/types.cuh src/types.cu src/utils.cuh src/utils.cu src/functions.cuh src/functions.cu)
 
 set_target_properties(cudaAtScaleV2 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
