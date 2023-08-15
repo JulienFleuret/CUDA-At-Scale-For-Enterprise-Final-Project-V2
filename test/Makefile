@@ -14,3 +14,7 @@ test:
 .PHONY: clean
 clean:
 	rm -f test
+	
+.PHONY: test
+	chmod +x test
+	./test
