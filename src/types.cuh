@@ -6,6 +6,7 @@
 #include <npp.h>
 
 #include <memory>
+#include <vector>
 
 namespace cas // cuda at scale
 {
@@ -263,11 +264,11 @@ public:
     /// can be own it will be deallocated by the current
     /// object, otherwise it will not be deallocate
     /// by the current object.
-    /// \param data :
-    /// \param _step
-    /// \param _rows
-    /// \param _cols
-    /// \param _own
+    /// \param data : pointer on the data to own.
+    /// \param _step : number of bytes for move from a row to another.
+    /// \param _rows : number of rows.
+    /// \param _cols : number of columns.
+    /// \param _own : should the memory be deallocated by the current object.
     ///
     __host__ nppiMatrix_t(pointer data, const Npp32s& _step, const Npp32s& _rows, const Npp32s& _cols, const bool& _own = false);
 
@@ -409,6 +410,196 @@ private:
     pointer data;
     Npp32s rows, cols, step;
     std::shared_ptr<int> counter;
+};
+
+
+/////////////////////////////////////////////////////
+/// SIMPLE TENSOR
+////////////////////////////////////////////////////
+
+///
+/// \brief The nppiTensor_t class
+/// Simple tensor class, for device
+/// memory management. Use a reference
+/// counter approach in order to reduce
+/// the need for copy.
+///
+template<class T>
+class nppiTensor_t
+{
+public:
+
+    using value_type = T;
+    using pointer = T*;
+    using const_pointer = const T*;
+
+    ///
+    /// \brief nppiTensor_t : default or parametrict constructor.
+    /// Allocate memory in order to at least host a matrix
+    /// which dimensions are specify by the inputs.
+    /// \param _rows : number of rows of the matrix to create.
+    /// \param _cols : number of colmuns of the matrix to create.
+    ///
+    template<class... Args>
+    __host__ nppiTensor_t(const Args&... dimensions);
+
+    ///
+    /// \brief nppiTensor_t : parametric constructor.
+    /// This constructor is an interface with memory
+    /// allocation outside of the class. If memory
+    /// can be own it will be deallocated by the current
+    /// object, otherwise it will not be deallocate
+    /// by the current object.
+    /// \param data : pointer on the data.
+    /// \param _steps : steps for each dimensions.
+    /// \param _dimensions : dimensions.
+    /// \param _own : should the memory be deallocated by the current object or not.
+    ///
+    __host__ nppiTensor_t(pointer data, const std::vector<Npp32s>& steps, const std::vector<Npp32s>& dimensions, const bool& _own = false);
+
+    ///
+    /// \brief nppiTensor_t : copy constructor,
+    /// Initialize the current object to the same
+    /// values as those of the provided object.
+    /// If the counter is initialize, it is incremented.
+    /// This constructor DOES NOT perform any copy.
+    /// \param obj : object to initialize the attributes on.
+    ///
+    __host__ nppiTensor_t(const nppiTensor_t& obj);
+
+    ///
+    /// \brief nppiTensor_t : move constructor.
+    /// swap the attributes of the current and
+    /// provided objects.
+    /// \param : object to move.
+    ///
+    nppiTensor_t(nppiTensor_t&&) = default;
+
+    ///
+    /// \brief ~nppiTensor_t : destructor.
+    /// If the memory is own and the counter
+    /// after decrementation has reach 0,
+    /// then the memory is deallocated.
+    /// In any cases the attrobutes are reset
+    /// to null for the address and the counter
+    /// and 0 for the dimensionality attributes.
+    ///
+    __host__ ~nppiTensor_t();
+
+    ///
+    /// \brief Assignation operator :
+    /// Initialize the current object to the same
+    /// values as those of the provided object.
+    /// If the counter is initialize, it is incremented.
+    /// This operator DOES NOT perform any copy.
+    /// \param obj : object to initialize the attributes on.
+    /// \return current object.
+    ///
+    __host__ nppiTensor_t& operator=(const nppiTensor_t& obj);
+
+    ///
+    /// \brief Move operator :
+    /// Swap the attributes of the current and
+    /// provided objects.
+    /// \param : object to move.
+    /// \return current object.
+    ///
+    nppiTensor_t& operator=(nppiTensor_t&&) = default;
+
+    ///
+    /// \brief order :
+    /// return the tensor order. (0 if it is a scalar, 1 for a vector, ...)
+    /// \return order of the current tensor.
+    ///
+    __host__ Npp32s order() const;
+
+
+    ///
+    /// \brief dimensions :
+    /// return the dimensions of the current array
+    /// \return
+    ///
+    __host__ std::vector<Npp32s> dimensions() const;
+
+    ///
+    /// \brief dimension :
+    /// return the value of the specified dimension.
+    /// \param idx : dimension to know about.
+    /// \return value of the specified dimension.
+    ///
+    __host__ Npp32s dimension(const Npp32s& idx) const;
+
+    ///
+    /// \brief pitchs :
+    /// return the value of the pitchs for all the dimensions as number of bytes.
+    /// \return value of the pitchs for all the dimensions as number of bytes.
+    ///
+    __host__ std::vector<Npp32s> pitchs() const;
+
+    ///
+    /// \brief pitch :
+    /// return the value of pitch for the specified dimension as number of bytes.
+    /// \param idx : dimension to know about.
+    /// \return value of pitch for the specified dimension as number of bytes.
+    ///
+    __host__ Npp32s pitch(const Npp32s& idx) const;
+
+    ///
+    /// \brief release : memory release method.
+    /// If the memory is own and the counter
+    /// after decrementation has reach 0,
+    /// then the memory is deallocated.
+    /// In any cases the attrobutes are reset
+    /// to null for the address and the counter
+    /// and 0 for the dimensionality attributes.
+    ///
+    __host__ void release();
+
+    ///
+    /// \brief create
+    /// \param dimensions : dimensions of the current object.
+    ///
+    template<class... Args>
+    void create(const Args&... dimensions);
+
+
+    ///
+    /// \brief ptr : accessor.
+    /// return the address of the element of the specified row and column.
+    /// \param y : index of the first element on the dimension.
+    /// \param indices : index of the elements of all the other dimensions, but the first.
+    /// \return address of the element located that the y^{th} rows and x^{th} rows..
+    ///
+    template<class... Args>
+    __host__ pointer ptr(const Args&... indices);
+
+    ///
+    /// \brief ptr : accessor.
+    /// return the address of the element of the specified row and column.
+    /// \param y : index of the first element on the dimension.
+    /// \param indices : index of the elements of all the other dimensions, but the first.
+    /// \return address of the element located that the y^{th} rows and x^{th} rows..
+    ///
+    template<class... Args>
+    __host__ const_pointer ptr(const Args&... indices) const;
+
+
+private:
+
+    ///
+    /// \brief get_index :
+    /// compute the index of the pointer
+    /// corresponding to a set of coordinates.
+    /// \param indices
+    /// \return address of the element corresponding to the provided coordinates.
+    ///
+    template<class... Args>
+    Npp32s get_index(const Args&... indices)const;
+
+    unsigned char* data;
+    std::vector<Npp32s> dims, steps;
+    std::shared_ptr<int> counter;
+
 };
 
 } // cas

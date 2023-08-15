@@ -1,6 +1,10 @@
 #include "types.cuh"
 #include "utils.cuh"
 
+#include <numeric>
+#include <functional>
+#include <cassert>
+
 #define DEF_CLASS_SPEC(name)\
     template class name<Npp8u>;\
     template class name<Npp8s>;\
@@ -469,5 +473,294 @@ __host__ typename nppiMatrix_t<T>::const_pointer nppiMatrix_t<T>::ptr(const Npp3
 }
 
 DEF_CLASS_SPEC(nppiMatrix_t)
+
+
+
+/////////////////////////////////////////////////////
+/// SIMPLE TENSOR
+////////////////////////////////////////////////////
+
+///
+/// \brief nppiTensor_t : parametrict constructor.
+/// Allocate memory in order to at least host a tensor
+/// which dimensions are specify by the inputs.
+/// \param _rows : number of rows of the matrix to create.
+/// \param _cols : number of colmuns of the matrix to create.
+///
+template<class T>
+template<class... Args>
+__host__ nppiTensor_t<T>::nppiTensor_t(const Args&... dimensions):
+    data(nullptr)
+{
+    if constexpr (sizeof...(Args))
+        this->create(dimensions...);
+}
+
+///
+/// \brief nppiTensor_t : parametric constructor.
+/// This constructor is an interface with memory
+/// allocation outside of the class. If memory
+/// can be own it will be deallocated by the current
+/// object, otherwise it will not be deallocate
+/// by the current object.
+/// \param data :
+/// \param _step
+/// \param _rows
+/// \param _cols
+/// \param _own
+///
+template<class T>
+__host__ nppiTensor_t<T>::nppiTensor_t(pointer _data, const std::vector<Npp32s>& _steps, const std::vector<Npp32s>& _dimensions, const bool& _own):
+    data(reinterpret_cast<unsigned char*>(_data)),
+    steps(_steps),
+    dims(_dimensions),
+    counter(_own ? new int(1) : nullptr)
+{}
+
+///
+/// \brief nppiTensor_t : copy constructor,
+/// Initialize the current object to the same
+/// values as those of the provided object.
+/// If the counter is initialize, it is incremented.
+/// This constructor DOES NOT perform any copy.
+/// \param obj : object to initialize the attributes on.
+///
+template<class T>
+__host__ nppiTensor_t<T>::nppiTensor_t(const nppiTensor_t& obj):
+    data(obj.data),
+    steps(obj.steps),
+    dims(obj.dims),
+    counter(obj.counter)
+{
+    if(this->counter)
+        ++(*this->counter);
+}
+
+
+
+///
+/// \brief ~nppiTensor_t : destructor.
+/// If the memory is own and the counter
+/// after decrementation has reach 0,
+/// then the memory is deallocated.
+/// In any cases the attrobutes are reset
+/// to null for the address and the counter
+/// and 0 for the dimensionality attributes.
+///
+template<class T>
+__host__ nppiTensor_t<T>::~nppiTensor_t()
+{
+    this->release();
+}
+
+///
+/// \brief Assignation operator :
+/// Initialize the current object to the same
+/// values as those of the provided object.
+/// If the counter is initialize, it is incremented.
+/// This operator DOES NOT perform any copy.
+/// \param obj : object to initialize the attributes on.
+/// \return current object.
+///
+template<class T>
+__host__ nppiTensor_t<T>& nppiTensor_t<T>::operator=(const nppiTensor_t& obj)
+{
+
+    if(std::addressof(obj) != this)
+    {
+        this->release();
+
+        this->data = obj.data;
+        this->dims = obj.dims;
+        this->steps = obj.steps;
+        this->counter = obj.counter;
+
+        if(this->counter)
+            ++(*this->counter);
+    }
+
+    return (*this);
+
+}
+
+
+
+///
+/// \brief order :
+/// return the tensor order. (0 if it is a scalar, 1 for a vector, ...)
+/// \return order of the current tensor.
+///
+template<class T>
+__host__ Npp32s nppiTensor_t<T>::order() const
+{
+    return !this->dims.front() ? 0 : static_cast<Npp32s>(this->steps.size());
+}
+
+
+///
+/// \brief dimensions :
+/// return the dimensions of the current array
+/// \return
+///
+template<class T>
+__host__ std::vector<Npp32s> nppiTensor_t<T>::dimensions() const
+{
+    return this->dims;
+}
+
+///
+/// \brief dimension :
+/// return the value of the specified dimension.
+/// \param idx : dimension to know about.
+/// \return value of the specified dimension.
+///
+template<class T>
+__host__ Npp32s nppiTensor_t<T>::dimension(const Npp32s& idx) const
+{
+    assert(idx<static_cast<Npp32s>(this->dims.size()));
+    return this->dims.at(idx);
+}
+
+///
+/// \brief pitchs :
+/// return the value of the pitchs for all the dimensions as number of bytes.
+/// \return value of the pitchs for all the dimensions as number of bytes.
+///
+template<class T>
+__host__ std::vector<Npp32s> nppiTensor_t<T>::pitchs() const
+{
+    std::vector<Npp32s> ret = this->steps;
+
+    for(Npp32s& step : ret)
+        step *= sizeof(T);
+
+    return ret;
+}
+
+///
+/// \brief pitch :
+/// return the value of pitch for the specified dimension as number of bytes.
+/// \param idx : dimension to know about.
+/// \return value of pitch for the specified dimension as number of bytes.
+///
+template<class T>
+__host__ Npp32s nppiTensor_t<T>::pitch(const Npp32s& idx) const
+{
+    return this->steps.at(idx) * sizeof(T);
+}
+
+///
+/// \brief release : memory release method.
+/// If the memory is own and the counter
+/// after decrementation has reach 0,
+/// then the memory is deallocated.
+/// In any cases the attrobutes are reset
+/// to null for the address and the counter
+/// and 0 for the dimensionality attributes.
+///
+template<class T>
+__host__ void nppiTensor_t<T>::release()
+{
+    if(this->counter && !(--(*this->counter)))
+        nppiFree(this->data);
+
+    this->data = nullptr;
+    this->dims.clear();
+    this->steps.clear();
+    this->counter.reset();
+}
+
+///
+/// \brief create
+/// \param dims : dimensions of the current object.
+///
+template<class T>
+template<class... Args>
+void nppiTensor_t<T>::create(const Args&... dimensions)
+{
+    if constexpr (sizeof...(Args) == 0)
+    {
+        this->dims.push_back(0);
+    }
+    else
+    {
+        // Prepare the dimensions attribute.
+        this->dims = {dimensions...};
+
+        Npp32s rows = this->dims.front();
+        Npp32s cols = this->dims.size() > 1 ? std::accumulate(this->dims.begin() + 1, this->dims.end(), 0, std::multiplies<Npp64s>()) : 1;
+        Npp32s step0(0);
+
+        // Allocate the memory.
+        this->data = nppiMalloc_8u_C1(cols * sizeof(value_type), rows, &step0);
+
+        this->steps.reserve(this->dims.size());
+
+        // Step 0 correspond to the product of all the dimensions starting from the second.
+        // e.g. type: float32 (i.e. sizeof -> 4),  dims : 32 x 3 x 640 x 480 -> steps: (3 x 640 x 480 x sizeof(float32)) x (640 x 480 x sizeof(float32)) x (480 x sizeof(float32)) x sizeof(float32)
+        this->steps.push_back(step0);
+
+        for(size_t i=1;i<this->dims.size(); ++i)
+            this->steps.push_back(std::accumulate(this->dims.begin() + i, this->dims.end(), 0, std::multiplies<Npp64s>()) * sizeof(value_type));
+
+        // One might observe or know that step0 value might be larger than product of all, but the first, dimensions.
+        // From a practical point of view this will results in some bytes not used. This slight over-allocation allocation
+        // ensure that the memory is always aligned.
+
+    }
+}
+
+
+///
+/// \brief ptr : accessor.
+/// return the address of the element of the specified row and column.
+/// \param y : index of the first element on the dimension.
+/// \param indices : index of the elements of all the other dimensions, but the first.
+/// \return address of the element located that the y^{th} rows and x^{th} rows..
+///
+template<class T>
+template<class... Args>
+__host__ typename nppiTensor_t<T>::pointer nppiTensor_t<T>::ptr(const Args&... indices)
+{
+    return reinterpret_cast<pointer>(this->data + this->get_index(indices...));
+}
+
+///
+/// \brief ptr : accessor.
+/// return the address of the element of the specified row and column.
+/// \param y : index of the first element on the dimension.
+/// \param indices : index of the elements of all the other dimensions, but the first.
+/// \return address of the element located that the y^{th} rows and x^{th} rows..
+///
+template<class T>
+template<class... Args>
+__host__ typename nppiTensor_t<T>::const_pointer nppiTensor_t<T>::ptr(const Args&... indices) const
+{
+    return reinterpret_cast<const_pointer>(this->data + this->get_index(indices...));
+}
+
+
+///
+/// \brief get_index :
+/// compute the index of the pointer
+/// corresponding to a set of coordinates.
+/// \param indices
+/// \return address of the element corresponding to the provided coordinates.
+///
+template<class T>
+template<class... Args>
+Npp32s nppiTensor_t<T>::get_index(const Args&... _indices)const
+{
+    std::vector<int> indices = {_indices...};
+
+    Npp32s ret(0);
+
+    for(size_t i=0; i<std::min(this->steps.size(), indices.size()); ++i)
+        ret += indices.at(i) * this->steps.at(i);
+
+    return ret;
+}
+
+DEF_CLASS_SPEC(nppiTensor_t)
 
 } // cas

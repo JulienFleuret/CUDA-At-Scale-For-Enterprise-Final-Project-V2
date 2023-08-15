@@ -14,11 +14,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake gcc-12 g++-12 libopencv-dev
+
       - name: Install NVIDIA/CUDA
         run: |
           wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
@@ -36,6 +36,11 @@ jobs:
       - name: Run tests
         run: |
           cd test
+<<<<<<< HEAD
+=======
+          echo $(test 1) >> GITHUB_OUTPUT
+          echo $(test 2) >> GITHUB_OUTPUT
+>>>>>>> 40dc16d (back to test)
           test
         id: run_tests
         env:
@@ -49,3 +54,4 @@ jobs:
           SLACK_MESSAGE: ${{join(steps.run_tests.outputs.*, '\n')}}
           SLACK_TITLE: CI Test Suite
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+

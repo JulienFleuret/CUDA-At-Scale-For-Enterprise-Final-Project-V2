@@ -270,7 +270,7 @@ int main(int argc, char* argv[])
         check_cuda_error_or_npp_status(cudaMemcpyToSymbol(d_dyStep, &dY_step, sizeof(int)));
 
         // Lambda to process on the kernel.
-        auto mag = [=] __device__ (const unsigned char& dx, const unsigned char& dy)->unsigned char
+        auto mag = [] __device__ (const unsigned char& dx, const unsigned char& dy)->unsigned char
         {
             float dxf = static_cast<float>(dx);
             float dyf = static_cast<float>(dy);
