@@ -13,6 +13,8 @@ using namespace cv;
 int main()
 {
 
+	return EXIT_SUCCESS;
+
 	try{
 		
 		String pwd = cv::utils::fs::getcwd();
