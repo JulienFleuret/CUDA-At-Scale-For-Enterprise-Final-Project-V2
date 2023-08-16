@@ -160,10 +160,20 @@ nppiMatrix_t<T> magnitude(const nppiMatrix_t<T>& horz, const nppiMatrix_t<T>& ve
 {
     assert(horz.width() == vert.width() && horz.height() == vert.height());
 
+    safe_stream stream1;
+
+    stream1.create();
+
     // Create the destination.
     nppiMatrix_t<T> Mag(horz.height(), horz.width());
 
-    // Set the constant memory variables.
+    const int rows = horz.height();
+    const int cols = horz.width();
+    const int mag_step = Mag.pitch();
+    const int dX_step = horz.pitch();
+    const int dY_step = vert.pitch();
+
+    // Set the constant memory variables.            
     check_cuda_error_or_npp_status(cudaMemcpyToSymbol(d_rows, &rows, sizeof(int)));
     check_cuda_error_or_npp_status(cudaMemcpyToSymbol(d_cols, &cols, sizeof(int)));
     check_cuda_error_or_npp_status(cudaMemcpyToSymbol(d_dstStep, &mag_step, sizeof(int)));
@@ -187,7 +197,7 @@ nppiMatrix_t<T> magnitude(const nppiMatrix_t<T>& horz, const nppiMatrix_t<T>& ve
 
     // Execute the kernel.
     check_cuda_error_or_npp_status(cudaFuncSetCacheConfig(k_mag<__decltype(mag)>, cudaFuncCachePreferL1));
-    k_mag<<<grid, block, 0, stream1>>>(mag, dX.ptr(), dY.ptr(), Mag.ptr());
+    k_mag<<<grid, block, 0, stream1>>>(mag, horz.ptr(), vert.ptr(), Mag.ptr());
     check_cuda_error_or_npp_status(cudaGetLastError());
 
     return Mag;
@@ -230,6 +240,195 @@ nppiMatrix_t<T> resize_bi_cubic(const nppiMatrix_t<T>& input, const NppiSize& ds
 
     return output;
 }
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct SeparableFilter::transaction_t
+{
+  tensor_type_f kernel, src, dst;
+  std::vector<int> src_offsets, dst_offsets;
+};
+
+__host__ bool SeparableFilter::try_init()
+{
+    bool ret(false);
+
+    if(!this->init)
+    {
+        this->buffers.reserve(this->kernels.size());
+
+        Npp32s nb_dims = static_cast<Npp32s>(this->dimensions.size());
+
+        this->src_offsets.reserve(nb_dims);
+        this->dst_offsets.reserve(nb_dims);
+
+        for(const auto& kernel : this->kernels)
+        {
+            // Step 1) check that everything is in order.
+            if(kernel.order() != nb_dims)
+                throw std::runtime_error("The Convolution Kernels Must Have The Same Number Of Dimensions As The Source Image");
+
+            // Step 2) get the dimensions of the current temporary buffer.
+            std::vector<Npp32s> buffer_dimension(nb_dims);
+
+            for(Npp32s i=0; i<nb_dims; ++i)
+                buffer_dimension.at(i) = this->dimensions.at(i) + kernel.dimension(i) - 1;
+
+            // Step 3) create the buffer (allocate the memory).
+            nppiTensor_t<Npp32f> buffer(buffer_dimension);
+
+            // Step 4) put the buffer in the bank.
+            this->buffers.push_back(buffer);
+
+            // Step 5) compute the source offset coordinates.
+            std::vector<int> src_offset(nb_dims);
+
+            if(this->src_offsets.empty())
+            {
+                std::fill_n(src_offset.begin(), nb_dims, 0);
+            }
+            else
+            {
+                src_offset = this->dst_offsets.back();
+            }
+
+            this->src_offsets.push_back(src_offset);
+
+
+            // Step 6) compute the destination offset coordinates.
+            std::vector<int> dst_offset(nb_dims);
+
+            for(Npp32s i=0; i<nb_dims; ++i)
+                dst_offset.at(i) = kernel.dimension(i) >> 1;
+
+            this->dst_offsets.push_back(dst_offset);
+        }
+
+        ret = this->init = true;
+    }
+
+    return ret;
+
+}
+
+__host__ void SeparableFilter::clear()
+{
+    this->buffers.clear();
+    this->src_offsets.clear();
+    this->dst_offsets.clear();
+    this->init = false;
+}
+
+__host__ void SeparableFilter::update_kernels(const std::vector<Npp32s>& src_dimensions, const std::vector<tensor_type_f >& _kernels)
+{
+    this->clear();
+    this->dimensions = src_dimensions;
+    this->kernels = _kernels;
+}
+
+
+__constant__ int d_srcStep;
+__constant__ int d_order;
+__constant__ int d_dimensions[10];
+__constant__ int d_steps[10];
+
+__device__ int offset(const int& y, const int& x)
+{
+    int tmp = y * d_steps[d_order - 2] + x * d_steps[d_order - 1];
+}
+
+// Kernel that allows to play with lambda expressions.
+///
+/// \brief k_mag : kernel magnitude ... but it could compute anything else depending on the first argumnent.
+/// \param fun : lambda expression to execute on the kernel.
+/// \param src : source address of the image to convert.
+/// \param dst : address of the first element of the destination.
+///
+template<class Fun_t, class SrcType, class DstType>
+__global__ void k_cvt(Fun_t fun, const SrcType* __restrict__ src, DstType*  __restrict__ dst)
+{
+    // Current location.
+    const int y = blockDim.y * blockIdx.y + threadIdx.y;
+    const int x = blockDim.x * blockIdx.x + threadIdx.x;
+
+    // Is the current kernel in the expected grid?
+    if((y >= d_rows) || (x >= d_cols) )
+        return;
+
+    // If Yes...
+
+    // Retrieve the addressess of the inputs and outputs
+    // for the current location.
+    const Npp8u* __restrict__ dX_current = dX + y * d_dxStep + x;
+    const Npp8u* __restrict__ dY_current = dY + y * d_dyStep + x;
+    Npp8u* __restrict__ dst_current = (dst + y * d_dstStep + x);
+
+    // Process.
+    *dst_current = fun(*dX_current, *dY_current);
+}
+
+template<class SrcType, class DstType>
+__host__ void convertTensor(const nppiTensor_t<SrcType>& src, nppiTensor_t<DstType>& dst)
+{
+    const int order = src.order();
+    const std::vector dimensions = src.dimensions();
+    const std::vector steps = src.pitchs();
+
+    check_cuda_error_or_npp_status(cudaMemcpyToSymbol(d_order, &order, sizeof(int)));
+    check_cuda_error_or_npp_status(cudaMemcpyToSymbol(d_dimensions), dimensions.data(), sizeof(int) * dimensions.size());
+    check_cuda_error_or_npp_status(cudaMemcpyToSymbol(d_steps, steps.data(), steps.size() * sizeof(int)));
+
+
+}
+
+__host__ void SeparableFilter::apply(const nppiTensor_t<T>& src, nppiTensor_t<T>& dst)
+{
+    this->try_init();
+
+    tensor_type_f srcf, dstf;
+
+    std::vector<transaction_t> transactions;
+
+    srcf.create(src.dimensions());
+    dstf.create(srcf.dimensions());
+
+    // src -> srcf
+
+    // Assignation of the source, destination buffers.
+    // src, b0
+    // b0, b1
+    // b1, b2
+    // b2, dst
+
+    transactions.push_back({this->kernels.front(), srf, this->buffers.front(), this->src_offsets.front(), this->dst_offsets.front()});
+
+    auto it_kernels = this->kernels.begin() + 1;
+    auto it_src_off = this->src_offsets.begin() + 1;
+    auto it_dst_off = this->dst_offsets.begin() + 1;
+    for(auto it_current = this->buffers.begin(), it_next = this->buffers.begin() + 1; it_next != this->buffers.end(); ++it_current, ++it_next, ++it_kernels, ++it_src_off, ++it_dst_off)
+        src_dst.push_back({*it_kernels, *it_current, *it_next, *it_src_off, *it_dst_off});
+
+    src_dst.push_back({this->kernels.back(), this->buffers.back(), dstf, this->src_offsets.back(), this->src_offsets.front()});
+
+    // Apply the filters
+
+    for(auto& transaction : transactions)
+        this->applyOneFilter(transaction);
+
+    // dstf -> dst
+
+
+}
+
+SeparableFilter::SeparableFilter(const std::vector<Npp32s> &src_dimensions, const std::vector<nppiTensor_t<Npp32f> > &_kernels):
+    init(false)
+    dimensions(src_dimensions),
+    kernels(_kernels)
+{
+    this->try_init();
+}
+
 
 
 ///
@@ -300,7 +499,7 @@ nppiTensor_t<T> merge(const std::vector<nppiMatrix_t<T> >& matrices, const merge
     if(option == mergeOptions::ASSERT_IF_SIZE_NOT_EQUAL)
     {
         // Step 1) check if every matrix has the same size.
-        NppiSize sz0 = mat.size();
+        NppiSize sz0 = matrices.front().size();
 
         for(int i=1; i<matrices.size(); ++i)
         {
@@ -353,8 +552,8 @@ nppiTensor_t<T> merge(const std::vector<nppiMatrix_t<T> >& matrices, const merge
             {
                 NppiSize current_size = matrix.size();
 
-                highest_src.width = std::max(lowest_src.width, current_size.width);
-                highest_src.height = std::max(lowest_src.height, current_size.height);
+                highest_src.width = std::max(highest_src.width, current_size.width);
+                highest_src.height = std::max(highest_src.height, current_size.height);
 
                 smallestSrc.width = std::min(smallestSrc.width, current_size.width);
                 smallestSrc.height = std::max(smallestSrc.height, current_size.height);
@@ -381,7 +580,7 @@ nppiTensor_t<T> merge(const std::vector<nppiMatrix_t<T> >& matrices, const merge
                 it_batch->nSrcStep = it->pitch();
 
                 // Why allocating memory? To avoid having issues with the pitch. Yes it is not optimal and memorivorus.
-                it_batch->pDst = nppiMalloc_8u_C1(dst_size.width * sizeof(T), dst_size.height, std::addressof(it_batch->nDstStep))
+                it_batch->pDst = nppiMalloc_8u_C1(dst_size.width * sizeof(T), dst_size.height, std::addressof(it_batch->nDstStep));
 
                         // it_batch->pDst = ret.ptr(i);
                         // it_batch->nDstStep = ret.pitch(1);
@@ -409,7 +608,7 @@ nppiTensor_t<T> merge(const std::vector<nppiMatrix_t<T> >& matrices, const merge
             {
                 check_cuda_error_or_npp_status(cudaMemcpy2D(ret.ptr(i), ret.pitch(i), it_batch->pDst, it_batch->nDstStep, dst_size.width, dst_size.height, cudaMemcpyDeviceToDevice));
 
-                check_cuda_error_or_npp_status(nppiFree(it_batch->pDst));
+                nppiFree(it_batch->pDst);
             }
 
             check_cuda_error_or_npp_status(cudaFree(batch));
@@ -424,7 +623,7 @@ nppiTensor_t<T> merge(const std::vector<nppiMatrix_t<T> >& matrices, const merge
                 for(size_t i=0; i<matrices.size(); ++i, ++it_batch)
                 {
                     if(it_batch->pDst)
-                        check_cuda_error_or_npp_status(nppiFree(it_batch->pDst));
+                        nppiFree(it_batch->pDst);
                 }
 
                 check_cuda_error_or_npp_status(cudaFree(batch));

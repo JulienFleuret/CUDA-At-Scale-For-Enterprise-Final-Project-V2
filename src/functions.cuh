@@ -58,8 +58,62 @@ nppiMatrix_t<T> resize_bi_cubic(const nppiMatrix_t<T>& input, const NppiSize& ds
 /// \param k_vert : vertical kernels to apply to the tensors.
 /// \return processed tensor.
 ///
-template<class T>
-nppiTensor_t<T> seprable_filter(const nppiTensor_t<T>& src, const nppiTensor_t<T>& k_horz, const nppiTensor_t<T>& k_vert);
+//template<class T>
+//nppiTensor_t<T> seprable_filter(const nppiTensor_t<T>& src, const nppiTensor_t<T>& k_horz, const nppiTensor_t<T>& k_vert);
+
+class SeparableFilter
+{
+public:
+
+    using tensor_type_f = nppiTensor_t<Npp32f>;
+
+    ~SeparableFilter() = default;
+
+    __host__ bool try_init();
+
+    __host__ void clear();
+
+    template<class... Args>
+    __host__ __forceinline__ void update_kernels(const std::vector<Npp32s>& src_dimensions, const Args&... kernels)
+    {
+        this->update_kernels(src_dimensions, {kernels...});
+    }
+
+    __host__ void update_kernels(const std::vector<Npp32s>& src_dimensions, const std::vector<tensor_type_f >& _kernels);
+
+    template<class T>
+    __host__ void apply(const nppiTensor_t<T>& src, nppiTensor_t<T>& dst);
+
+
+
+    template<class... Args>
+    static __host__ __forceinline__ std::unique_ptr<SeparableFilter> create(const std::vector<Npp32s>& src_dimensions, const Args&... kernels)
+    {
+        return create(src_dimensions, {kernels...});
+    }
+
+    static __host__ std::unique_ptr<SeparableFilter> create(const std::vector<Npp32s>& src_dimensions, const std::vector<tensor_type_f>& kernels);
+
+private:
+
+    // Transaction in the sense of a single unit of work, i.e. the application of a kernel.
+    struct transaction_t;
+
+    __host__ SeparableFilter();
+
+    __host__ SeparableFilter(const std::vector<Npp32s>& src_dimensions, const std::vector<nppiTensor_t<Npp32f> >& kernels);
+
+    __host__ nppiTensor_t<Npp32f> applyOneFilter(transaction_t& obj);
+
+    bool init;
+    std::vector<Npp32s> dimensions;
+    std::vector<tensor_type_f > kernels;
+    std::vector<tensor_type_f > buffers;
+    std::vector<std::vector<int> > src_offsets;
+    std::vector<std::vector<int> > dst_offsets;
+};
+
+
 
 ///
 /// \brief spatial_gradient:

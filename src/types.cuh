@@ -221,6 +221,121 @@ public:
     __host__ operator cudaEvent_t() const;
 };
 
+/////////////////////////////////////////////////////
+/// SIMPLE MATRIX
+////////////////////////////////////////////////////
+
+///
+/// \brief The nppiVector_t class
+/// Simple vector class, for device
+/// memory management. Use a reference
+/// counter approach in order to reduce
+/// the need for copy.
+///
+template<class T>
+class nppiVector_t
+{
+public:
+
+    using value_type = T;
+    using pointer = T*;
+    using const_pointer = const T*;
+
+    ///
+    /// \brief nppiVector_t : default constructor.
+    /// Initialize the data pointer and the counter
+    /// to null, and the dimensionality attributes to 0
+    ///
+    __host__ nppiVector_t();
+
+    ///
+    /// \brief nppiVector_t
+    /// \param size
+    ///
+    __host__ nppiVector_t(const Npp32s& size);
+
+    ///
+    /// \brief nppiVector_t : parametric contructor.
+    /// Initialize the current object from an external pointer.
+    /// \param _data : pointer to assign to the current object.
+    /// \param size : size of the current object.
+    /// \param own : should the memory be managed by the current object.
+    ///
+    __host__ nppiVector_t(pointer _data, const Npp32s size, const bool& own = false);
+
+    ///
+    /// \brief nppiVector_t : copy constructor
+    /// this constructor does not do a copy,
+    /// but a referenciation.
+    /// \param obj : object to reference.
+    ///
+    __host__ nppiVector_t(const nppiVector_t& obj);
+
+
+
+    ///
+    /// \brief nppiVector_t : move constructor.
+    /// \param obj : object to become.
+    ///
+    nppiVector_t(nppiVector_t&&) = default;
+
+    ///
+    /// \brief ~nppiVector_t
+    ///
+    __host__ ~nppiVector_t();
+
+    ///
+    /// \brief operator =
+    /// \param obj
+    /// \return
+    ///
+    __host__ nppiVector_t& operator=(const nppiVector_t& obj);
+
+    nppiVector_t& operator=(nppiVector_t&&) = default;
+
+    ///
+    /// \brief size
+    /// \return
+    ///
+    __host__ Npp32s size() const;
+
+    ///
+    /// \brief ptr
+    /// \param i
+    /// \return
+    ///
+    __host__ pointer ptr(const Npp32s& i=0);
+
+    ///
+    /// \brief ptr
+    /// \param i
+    /// \return
+    ///
+    __host__ const_pointer ptr(const Npp32s& i=0)const;
+
+    ///
+    /// \brief create : memory allocation method
+    /// \param size : size to allocate or reallocate.
+    ///
+    __host__ void create(const Npp32s& _size);
+
+    ///
+    /// \brief release : memory release method.
+    /// If the memory is own and the counter
+    /// after decrementation has reach 0,
+    /// then the memory is deallocated.
+    /// In any cases the attrobutes are reset
+    /// to null for the address and the counter
+    /// and 0 for the dimensionality attributes.
+    ///
+    __host__ void release();
+
+private:
+
+    unsigned char* data;
+    Npp32s len;
+    std::shared_ptr<int> counter;
+};
 
 /////////////////////////////////////////////////////
 /// SIMPLE MATRIX
@@ -441,7 +556,12 @@ public:
     /// \param _cols : number of colmuns of the matrix to create.
     ///
     template<class... Args>
-    __host__ nppiTensor_t(const Args&... dimensions);
+    __host__ nppiTensor_t(const Args&... dimensions):
+        data(nullptr)
+    {
+        if constexpr (sizeof...(Args))
+            this->create({dimensions...});
+    }
 
     ///
     /// \brief nppiTensor_t : parametric constructor.
@@ -560,8 +680,26 @@ public:
     /// \param dimensions : dimensions of the current object.
     ///
     template<class... Args>
-    void create(const Args&... dimensions);
+    __host__ __forceinline__ void create(const Args&... dimensions)
+    {
+        if constexpr (sizeof...(Args))
+        {
+            this->create({dimensions...});
+        }
+        else
+        {
+            this->dims.push_back(0);
+        }
+    }
 
+    ///
+    /// \brief create : by pass to avoid an issure
+    /// related to the deduction of variadic
+    /// template parameters, when the method is
+    /// defined outside of the class.
+    /// \param dims : dimension to contruct the object with.
+    ///
+    __host__ void create(const std::vector<int>& dimensions);
 
     ///
     /// \brief ptr : accessor.
@@ -571,7 +709,17 @@ public:
     /// \return address of the element located that the y^{th} rows and x^{th} rows..
     ///
     template<class... Args>
-    __host__ pointer ptr(const Args&... indices);
+    __host__ __forceinline__ pointer ptr(const Args&... indices)
+    {
+        if constexpr(sizeof...(Args))
+        {
+            return this->ptr({indices...});
+        }
+        else
+        {
+            return this->data;
+        }
+    }
 
     ///
     /// \brief ptr : accessor.
@@ -581,10 +729,43 @@ public:
     /// \return address of the element located that the y^{th} rows and x^{th} rows..
     ///
     template<class... Args>
-    __host__ const_pointer ptr(const Args&... indices) const;
+    __host__ __forceinline__ const_pointer ptr(const Args&... indices) const
+    {
+        if constexpr(sizeof...(Args))
+        {
+            return this->ptr({indices...});
+        }
+        else
+        {
+            return this->data;
+        }
+    }
 
 
 private:
+
+
+
+
+    ///
+    /// \brief ptr : by pass to avoid an issure
+    /// related to the deduction of variadic
+    /// template parameters, when the method is
+    /// defined outside of the class.
+    /// \param coord : coordinates to access.
+    /// \return address of the element at the specified location.
+    ///
+    __host__ pointer ptr(const std::initializer_list<int>& coord);
+
+    ///
+    /// \brief ptr : by pass to avoid an issure
+    /// related to the deduction of variadic
+    /// template parameters, when the method is
+    /// defined outside of the class.
+    /// \param coord : coordinates to access.
+    /// \return address of the element at the specified location.
+    ///
+    __host__ const_pointer ptr(const std::initializer_list<int>& coord) const;
 
     ///
     /// \brief get_index :
@@ -593,8 +774,7 @@ private:
     /// \param indices
     /// \return address of the element corresponding to the provided coordinates.
     ///
-    template<class... Args>
-    Npp32s get_index(const Args&... indices)const;
+    Npp32s get_index(const std::initializer_list<int>& indices)const;
 
     unsigned char* data;
     std::vector<Npp32s> dims, steps;
