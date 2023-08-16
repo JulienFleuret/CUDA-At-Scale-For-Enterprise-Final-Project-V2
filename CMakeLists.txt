@@ -68,8 +68,9 @@ find_package(OpenCV REQUIRED core imgcodecs highgui)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_definitions(-D__WARMUP_CALL__)
 
-add_executable(cudaAtScaleV2 src/main.cu src/types.cuh src/types.cu src/utils.cuh src/utils.cu src/functions.cuh src/functions.cu)
+add_executable(cudaAtScaleV2 src/main.cu src/types.cuh src/types.cu src/utils.cuh src/utils.cu)
 
 set_target_properties(cudaAtScaleV2 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
@@ -77,7 +78,7 @@ set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 
 
 set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
-set(CMAKE_CUDA_FLAGS "-m64 --compiler-options -fno-strict-aliasing -use_fast_math --std=c++17 --expt-relaxed-constexpr --extended-lambda -O3 --display-error-number --source-in-ptx -v")
+set(CMAKE_CUDA_FLAGS "-m64 --compiler-options -fno-strict-aliasing -use_fast_math --std=c++17 --expt-relaxed-constexpr --extended-lambda -O3 --display-error-number --source-in-ptx")
 
 if (NOT EXISTS ${CMAKE_SOURCE_DIR}/bin)
     file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
@@ -89,7 +90,7 @@ message("OCV DIR: ${OpenCV_INCLUDE_DIRS}")
 
 target_include_directories(cudaAtScaleV2 PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_directories(cudaAtScaleV2 PRIVATE ${CUDA_TOOLKIT_ROOT_DIR}/lib)
-target_link_libraries(cudaAtScaleV2 PRIVATE -lcudart -lnppc -lnppif -lnppisu -lnpps)
+target_link_libraries(cudaAtScaleV2 PRIVATE -lcudart -lnppc -lnppif -lnppisu)
 
 target_include_directories(cudaAtScaleV2 PRIVATE ${OpenCV_INCLUDE_DIRS})
 target_link_directories(cudaAtScaleV2 PRIVATE ${OpenCV_INCLUDE_DIRS}/../../lib)

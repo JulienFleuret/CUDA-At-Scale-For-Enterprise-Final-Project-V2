@@ -21,34 +21,8 @@ using namespace std;
 using namespace cv;
 using namespace cas;
 
-#if 1
-
-int main()
-{
-    Mat host_src = cv::imread("/home/smile/prog/cudaAtScaleV2/data/squirrel_cls.jpg");
-
-    {
-        std::vector<Mat> channels;
-        split(host_src, channels);
-
-        Mat tmp({3, host_src.rows, host_src.cols}, CV_8U);
 
 
-        for(size_t i=0; i<channels.size(); ++i)
-            std::memcpy(tmp.ptr(i), channels.at(i).ptr(), channels.at(i).rows * channels.at(i).step);
-
-        host_src = tmp;
-    }
-
-    nppiTensor_t<Npp8u> device_src(host_src.size.p[0], host_src.size.p[1], host_src.size.p[2]);
-
-    check_cuda_error_or_npp_status(cudaMemcpy(device_src.ptr(), host_src.ptr(), host_src.size.p[0] * host_src.size.p[1] * host_src.size.p[2], cudaMemcpyHostToDevice) );
-
-
-
-}
-
-#else
 // Usefull variables.
 __constant__ int d_rows;
 __constant__ int d_cols;
@@ -296,7 +270,7 @@ int main(int argc, char* argv[])
         check_cuda_error_or_npp_status(cudaMemcpyToSymbol(d_dyStep, &dY_step, sizeof(int)));
 
         // Lambda to process on the kernel.
-        auto mag = [] __device__ (const unsigned char& dx, const unsigned char& dy)->unsigned char
+        auto mag = [=] __device__ (const unsigned char& dx, const unsigned char& dy)->unsigned char
         {
             float dxf = static_cast<float>(dx);
             float dyf = static_cast<float>(dy);
@@ -350,5 +324,3 @@ int main(int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
-
-#endif // To remove once unit tests are over.
