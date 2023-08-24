@@ -6,6 +6,7 @@
 
 #include <iostream>
 
+
 // Convinient because some arithmetic functions on half type
 // are only available for achitecture 530 and above.
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
@@ -346,14 +347,22 @@ void compute_magnitude_by_batch_t::init(const String &input, const String &outpu
             this->load.set(CAP_PROP_POS_FRAMES, 0.);
         }
 
+        bool save_open;
+
         // Initialization of the output streaming object.
         if(output.find("%") != String::npos)
         {
-            this->save.open(output, 0 , fps, Size(cols, rows), false);
+            save_open = this->save.open(output, 0 , fps, Size(cols, rows), false);
         }
         else
         {
-            this->save.open(output, VideoWriter::fourcc('m','p','4','v') , fps, Size(this->cols, this->rows), false);
+            save_open = this->save.open(output, VideoWriter::fourcc('m','p','4','v') , fps, Size(this->cols, this->rows), false);
+        }
+
+        if(!save_open)
+        {
+            std::clog<<"Output Sequence Creation Failed"<<std::endl;
+            std::exit(EXIT_FAILURE);
         }
 
         // If the images of the input have a single channels
@@ -516,6 +525,9 @@ void compute_magnitude_by_batch_t::run()
             this->process<4>();
         }
     }
+
+    // close the file.
+    this->save.release();
 }
 
 ///
@@ -601,6 +613,7 @@ void compute_magnitude_by_batch_t::process()
 
             // Download an image from the device.
             check_cuda_error_or_npp_status(cudaMemcpy2D(tmp.ptr(), tmp.step, Mag.ptr(k), Mag.pitch(), tmp.cols, tmp.rows, cudaMemcpyDeviceToHost));
+
 
             // Save the image.
             this->save << tmp;
