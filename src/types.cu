@@ -1,5 +1,7 @@
-#include "types.cuh"
-#include "utils.cuh"
+#include "types.h"
+#include "utils.h"
+
+#include <iostream>
 
 #define DEF_CLASS_SPEC(name)\
     template class name<Npp8u>;\
@@ -24,7 +26,7 @@ namespace cas
 /// \brief safe_stream : default constructor.
 /// Initialize the attribute "stream" to nullptr.
 ///
-__host__ safe_stream::safe_stream():
+safe_stream::safe_stream():
     stream(nullptr)
 {}
 
@@ -36,7 +38,7 @@ __host__ safe_stream::safe_stream():
 /// by calling the method "destroy" of by
 /// the destructor.
 ///
-__host__ safe_stream::safe_stream(const cudaStream_t& _stream):
+safe_stream::safe_stream(const cudaStream_t& _stream):
     stream(_stream)
 {}
 
@@ -45,7 +47,7 @@ __host__ safe_stream::safe_stream(const cudaStream_t& _stream):
 /// If a stream was created, it will be
 /// destroy.
 ///
-__host__ safe_stream::~safe_stream()
+safe_stream::~safe_stream()
 {
     this->destroy();
 
@@ -56,7 +58,7 @@ __host__ safe_stream::~safe_stream()
 /// \param flags : attributes of the stream to set.
 /// \param priority : priority to set for the stream.
 ///
-__host__ void safe_stream::create(const unsigned int& flags, const int& priority)
+void safe_stream::create(const unsigned int& flags, const int& priority)
 {
     // If a stream already exists
     // it must be destroied before
@@ -87,7 +89,7 @@ __host__ void safe_stream::create(const unsigned int& flags, const int& priority
 /// stream, if it was created. Otherwise
 /// do nothing.
 ///
-__host__ void safe_stream::destroy()
+void safe_stream::destroy()
 {
     if(this->stream)
     {
@@ -101,223 +103,90 @@ __host__ void safe_stream::destroy()
 /// \param event : event to monitor.
 /// \param flags : attributes to set.
 ///
-__host__ safe_stream::operator cudaStream_t() const
+safe_stream::operator cudaStream_t() const
 {
     return this->stream;
 }
 
+
+
 ///
-/// \brief operator cudaStream_t : implicit conversion operator.
-/// Convinient to maintain compatibility with the rest of the
-/// CUDA API.
+/// \brief synchronize : wait for the current stream to have finish its task.
 ///
-__host__ void safe_stream::waitEvent(const safe_event& event, const unsigned int& flags)
+void safe_stream::synchronize()
 {
-    check_cuda_error_or_npp_status(cudaStreamWaitEvent(this->stream, event, flags));
+    check_cuda_error_or_npp_status(cudaStreamSynchronize(this->stream));
 }
 
 
 /////////////////////////////////////////////////////
-/// SAFE EVENT
+/// SIMPLE IMAGE TYPE
 ////////////////////////////////////////////////////
 
-///
-/// \brief safe_event : parametric constructor.
-/// \param event : event to own.
-/// The stream provided as argument is own
-/// by the object, and will be destroy either
-/// by calling the method "destroy" of by
-/// the destructor.
-///
-__host__ safe_event::safe_event():
-    event(nullptr)
-{}
 
 
 ///
-/// \brief ~safe_event : destructor
-/// If an event was created, it will be
-/// destroy.
-///
-__host__ safe_event::~safe_event()
-{
-    if(this->event)
-        this->destroy();
-}
-
-///
-/// \brief create : create the event.
-/// \param flags : attriutes to apply on the event.
-///
-__host__ void safe_event::create(const unsigned int& flags)
-{
-    if(this->event)
-        this->destroy();
-
-    if(flags!=cudaEventDefault)
-    {
-        check_cuda_error_or_npp_status(cudaEventCreate(std::addressof(this->event)));
-    }
-    else
-    {
-        check_cuda_error_or_npp_status(cudaEventCreateWithFlags(std::addressof(this->event), flags));
-    }
-}
-
-///
-/// \brief destroy : destroy the current
-/// event, if it was created. Otherwise
-/// do nothing.
-///
-__host__ void safe_event::destroy()
-{
-    if(this->event)
-    {
-        check_cuda_error_or_npp_status(cudaEventDestroy(this->event));
-        this->event = nullptr;
-    }
-}
-
-///
-/// \brief record : record an event
-/// \param _stream : stream to record.
-/// \param _flags : attributes to apply on the recording.
-///
-__host__ void safe_event::record(const safe_stream& _stream, const unsigned int& _flags)
-{
-    if(_flags!=cudaEventDefault)
-    {
-        check_cuda_error_or_npp_status(cudaEventRecord(this->event, _stream));
-    }
-    else
-    {
-        check_cuda_error_or_npp_status(cudaEventRecordWithFlags(this->event, _stream, _flags));
-    }
-}
-
-///
-/// \brief synchonize : waits for an event to complete.
-///
-__host__ void safe_event::synchonize()
-{
-    check_cuda_error_or_npp_status(cudaEventSynchronize(this->event));
-}
-
-///
-/// \brief operator cudaEvent_t : implicit conversion operator.
-/// Convinient to maintain compatibility with the rest of the
-/// CUDA API.
-///
-__host__ safe_event::operator cudaEvent_t() const
-{
-    return this->event;
-}
-
-
-/////////////////////////////////////////////////////
-/// SIMPLE MATRIX
-////////////////////////////////////////////////////
-
-///
-/// \brief nppiMatrix_t : default constructor.
-/// Initialize the data pointer and the counter
-/// to null, and the dimensionality attributes to 0
+/// \brief nppiImage_t : default contructor.
+/// initialize the attributes to their default
+/// value.
 ///
 template<class T>
-__host__ nppiMatrix_t<T>::nppiMatrix_t():
+nppiImage_t<T>::nppiImage_t():
     data(nullptr),
     rows(0),
     cols(0),
+    cns(0),
     step(0)
 {}
 
 ///
-/// \brief nppiMatrix_t : parametrict constructor.
-/// Allocate memory in order to at least host a matrix
-/// which dimensions are specify by the inputs.
-/// \param _rows : number of rows of the matrix to create.
-/// \param _cols : number of colmuns of the matrix to create.
+/// \brief nppiImage_t : copy constructor.
+/// This constructor does not make a deep copy.
+/// The attributes of the current objet are set
+/// to those of the provided object, and the reference
+/// counter is incremented.
+/// \param obj : object to reference.
 ///
 template<class T>
-__host__ nppiMatrix_t<T>::nppiMatrix_t(const Npp32s& _rows, const Npp32s& _cols)
-{
-    this->create(_rows, _cols);
-}
-
-///
-/// \brief nppiMatrix_t : parametric constructor.
-/// This constructor is an interface with memory
-/// allocation outside of the class. If memory
-/// can be own it will be deallocated by the current
-/// object, otherwise it will not be deallocate
-/// by the current object.
-/// \param data :
-/// \param _step
-/// \param _rows
-/// \param _cols
-/// \param _own
-///
-template<class T>
-__host__ nppiMatrix_t<T>::nppiMatrix_t(pointer _data, const Npp32s& _step, const Npp32s& _rows, const Npp32s& _cols, const bool& _own):
-    data(_data),
-    rows(_rows),
-    cols(_cols),
-    step(_step),
-    counter(_own ? new int(1) : nullptr)
-{}
-
-///
-/// \brief nppiMatrix_t : copy constructor,
-/// Initialize the current object to the same
-/// values as those of the provided object.
-/// If the counter is initialize, it is incremented.
-/// This constructor DOES NOT perform any copy.
-/// \param obj : object to initialize the attributes on.
-///
-template<class T>
-__host__ nppiMatrix_t<T>::nppiMatrix_t(const nppiMatrix_t &obj):
+nppiImage_t<T>::nppiImage_t(const nppiImage_t& obj):
     data(obj.data),
     rows(obj.rows),
     cols(obj.cols),
+    cns(obj.cns),
     step(obj.step),
     counter(obj.counter)
-{}
+{
+    if(this->counter)
+        ++(*this->counter);
+}
 
-
-///
-/// \brief ~nppiMatrix_t : destructor.
-/// If the memory is own and the counter
-/// after decrementation has reach 0,
-/// then the memory is deallocated.
-/// In any cases the attrobutes are reset
-/// to null for the address and the counter
-/// and 0 for the dimensionality attributes.
-///
 template<class T>
-__host__ nppiMatrix_t<T>::~nppiMatrix_t()
+nppiImage_t<T>::~nppiImage_t()
 {
     this->release();
 }
 
-
 ///
-/// \brief Assignation operator :
-/// Initialize the current object to the same
-/// values as those of the provided object.
-/// If the counter is initialize, it is incremented.
-/// This operator DOES NOT perform any copy.
-/// \param obj : object to initialize the attributes on.
-/// \return current object.
+/// \brief operator = assignation operator.
+/// If the current object is initialize the method
+/// release is called before assigning the attributes
+/// to those of object provided as argument.
+/// The reference counter is then incremented.
+/// \note this operator does not do a deep copy
+/// \return a reference on the current object.
 ///
 template<class T>
-__host__ nppiMatrix_t<T>& nppiMatrix_t<T>::operator=(const nppiMatrix_t& obj)
+nppiImage_t<T>& nppiImage_t<T>::operator=(const nppiImage_t& obj)
 {
-    if(std::addressof(obj) != this)
+    if(this != std::addressof(obj))
     {
-        this->data = obj.data;
-        this->rows = obj.rows;
-        this->cols = obj.cols;
-        this->step = obj.step;
+        this->release();
+
+        this->data    = obj.data;
+        this->rows    = obj.rows;
+        this->cols    = obj.cols;
+        this->cns     = obj.cns;
+        this->step    = obj.step;
         this->counter = obj.counter;
 
         if(this->counter)
@@ -328,44 +197,92 @@ __host__ nppiMatrix_t<T>& nppiMatrix_t<T>::operator=(const nppiMatrix_t& obj)
 }
 
 ///
-/// \brief release : memory release method.
-/// If the memory is own and the counter
-/// after decrementation has reach 0,
-/// then the memory is deallocated.
-/// In any cases the attrobutes are reset
-/// to null for the address and the counter
-/// and 0 for the dimensionality attributes.
+/// \brief channels
+/// \return number of channels.
 ///
 template<class T>
-__host__ void nppiMatrix_t<T>::release()
+int nppiImage_t<T>::channels() const
 {
-    if(this->counter && !(--(*this->counter)))
-        nppiFree(this->data);
-
-    this->data = nullptr;
-    this->rows = this->cols = this->step = 0;
-    this->counter.reset();
+    return this->cns;
 }
 
-
 ///
-/// \brief create : memory allocation method.
-/// Allocate memory in order to at least host a matrix
-/// which dimensions are specify by the inputs.
-/// \param _rows : number of rows of the matrix to create.
-/// \param _cols : number of colmuns of the matrix to create.
+/// \brief create : allocate memory
+/// \param rows : number of rows.
+/// \param cols : number of columns.
+/// \param channels : number of channels.
 ///
 template<class T>
-__host__ void nppiMatrix_t<T>::create(const Npp32s& _rows, const Npp32s& _cols)
+void nppiImage_t<T>::create(const Npp32s& _rows, const Npp32s& _cols, const Npp32s& channels)
 {
-    if(_rows != this->rows || _cols != this->cols)
-        this->release();
+    this->release();
 
     this->rows = _rows;
     this->cols = _cols;
-    this->data = reinterpret_cast<T*>(nppiMalloc_8u_C1(this->cols * sizeof(T), this->rows, &this->step));
+    this->cns = channels;
+    this->data = nppiMalloc_8u_C1(this->cols * channels * sizeof(T), this->rows, &this->step);
     this->counter.reset(new int (1));
 }
+
+///
+/// \brief create : allocate memory, convinient overload of the previous method.
+/// \param size : width and height to allocate.
+/// \param channels : number of channels.
+///
+template<class T>
+void nppiImage_t<T>::create(const NppiSize &size, const Npp32s &channels)
+{
+    this->create(size.height, size.width, channels);
+}
+
+///
+/// \brief release : deallocate memory if
+/// memory was allocated and the decrement of the reference
+/// counter reach 0.
+///
+template<class T>
+void nppiImage_t<T>::release()
+{
+    // If the counter was initialized and its decrement reach 0,
+    // it is time to deallocate the memory.
+    if(this->counter && !(--(*this->counter)))
+        nppiFree(this->data);
+
+    // reset attribute to their default values.
+    this->data = nullptr;
+    this->rows = this->cols = this->cns = this->step = 0;
+    this->counter.reset();
+}
+
+///
+/// \brief copyTo : copy to an external address.
+/// \param pDst : address of the first destination element.
+/// \param nDstStep : number of bytes to move from one row to another, from the destinaiton address.
+/// \param _rows : number of rows of the destination.
+/// \param _cols : number of columns of the destination.
+/// \note the external pointer can be on the device or on the host.
+///
+template<class T>
+void nppiImage_t<T>::copyTo(pointer pDst, const Npp32s& nDstStep, const Npp32s& _rows, const Npp32s& _cols, const Npp32s& _channels) const
+{
+    check_cuda_error_or_npp_status(cudaMemcpy2D(pDst, nDstStep, this->data, this->step, std::min(_cols, this->cols) * std::min(_channels, this->cns) * sizeof(T), std::min(_rows, this->rows), isDevicePointer(pDst) ? cudaMemcpyDeviceToHost : cudaMemcpyDeviceToDevice));
+}
+
+///
+/// \brief copyFrom : copy the data from an external address.
+/// \param pSrc : source pointer to copy from.
+/// \param nSrcStep : number of bytes to move from one row to another, from the source address.
+/// \param _rows : number of rows of the source.
+/// \param _cols : number of column of the source.
+/// \note the external pointer can be on the device or on the host.
+///
+template<class T>
+void nppiImage_t<T>::copyFrom(const_pointer pSrc, const Npp32s nSrcStep, const Npp32s& _rows, const Npp32s& _cols, const Npp32s& _channels)
+{
+    check_cuda_error_or_npp_status(cudaMemcpy2D(this->data, this->step, pSrc, nSrcStep, std::min(_cols, this->cols) * std::min(_channels, this->cns) * sizeof(T), std::min(_rows, this->rows), isDevicePointer(pSrc) ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToDevice));
+}
+
+
 
 ///
 /// \brief size : accessor.
@@ -374,33 +291,30 @@ __host__ void nppiMatrix_t<T>::create(const Npp32s& _rows, const Npp32s& _cols)
 /// allocation.
 ///
 template<class T>
-__host__ NppiSize nppiMatrix_t<T>::size() const
+NppiSize nppiImage_t<T>::size() const
 {
     return {this->cols, this->rows};
 }
-
 
 ///
 /// \brief width : accessor.
 /// \return the width of the current matrix.
 ///
 template<class T>
-__host__ Npp32s nppiMatrix_t<T>::width() const
+Npp32s nppiImage_t<T>::width() const
 {
     return this->cols;
 }
-
 
 ///
 /// \brief height : accessor.
 /// \return the height of the current matrix.
 ///
 template<class T>
-__host__ Npp32s nppiMatrix_t<T>::height() const
+Npp32s nppiImage_t<T>::height() const
 {
     return this->rows;
 }
-
 
 ///
 /// \brief pitch : accessor.
@@ -409,11 +323,22 @@ __host__ Npp32s nppiMatrix_t<T>::height() const
 /// \return the line step of the current matrix.
 ///
 template<class T>
-__host__ Npp32s nppiMatrix_t<T>::pitch() const
+Npp32s nppiImage_t<T>::pitch() const
 {
     return this->step;
 }
 
+///
+/// \brief ptr : accessor.
+/// return the address of the first element of the specified row.
+/// \param y : index of the row to return the address of the first element of.
+/// \return address of the first element of the specified specified by the row.
+///
+template<class T>
+typename nppiImage_t<T>::pointer nppiImage_t<T>::ptr(const Npp32s& y)
+{
+    return reinterpret_cast<pointer>(this->data + y * this->step);
+}
 
 ///
 /// \brief ptr : accessor.
@@ -422,24 +347,10 @@ __host__ Npp32s nppiMatrix_t<T>::pitch() const
 /// \return address of the first element of the specified specified by the row.
 ///
 template<class T>
-__host__ typename nppiMatrix_t<T>::pointer nppiMatrix_t<T>::ptr(const Npp32s& y)
+typename nppiImage_t<T>::const_pointer nppiImage_t<T>::ptr(const Npp32s& y) const
 {
-    return reinterpret_cast<pointer>(reinterpret_cast<unsigned char*>(this->data) + y * this->step);
+    return reinterpret_cast<const_pointer>(this->data + y * this->step);
 }
-
-
-///
-/// \brief ptr : accessor.
-/// return the address of the first element of the specified row.
-/// \param y : index of the row to return the address of the first element of.
-/// \return address of the first element of the specified specified by the row.
-///
-template<class T>
-__host__ typename nppiMatrix_t<T>::const_pointer nppiMatrix_t<T>::ptr(const Npp32s& y) const
-{
-    return reinterpret_cast<const_pointer>(reinterpret_cast<const unsigned char*>(this->data) + y * this->step);
-}
-
 
 ///
 /// \brief ptr : accessor.
@@ -449,11 +360,10 @@ __host__ typename nppiMatrix_t<T>::const_pointer nppiMatrix_t<T>::ptr(const Npp3
 /// \return address of the element located that the y^{th} rows and x^{th} rows..
 ///
 template<class T>
-__host__ typename nppiMatrix_t<T>::pointer nppiMatrix_t<T>::ptr(const Npp32s& y, const Npp32s& x)
+typename nppiImage_t<T>::pointer nppiImage_t<T>::ptr(const Npp32s& y, const Npp32s& x)
 {
-    return this->ptr(y) + x;
+    return this->ptr(y) + (x * this->cns);
 }
-
 
 ///
 /// \brief ptr : accessor.
@@ -463,11 +373,11 @@ __host__ typename nppiMatrix_t<T>::pointer nppiMatrix_t<T>::ptr(const Npp32s& y,
 /// \return address of the element located that the y^{th} rows and x^{th} rows..
 ///
 template<class T>
-__host__ typename nppiMatrix_t<T>::const_pointer nppiMatrix_t<T>::ptr(const Npp32s& y, const Npp32s& x) const
+typename nppiImage_t<T>::const_pointer nppiImage_t<T>::ptr(const Npp32s& y, const Npp32s& x) const
 {
-    return this->ptr(y) + x;
+    return this->ptr(y) + (x * this->cns);
 }
 
-DEF_CLASS_SPEC(nppiMatrix_t)
+DEF_CLASS_SPEC(nppiImage_t)
 
 } // cas

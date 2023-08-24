@@ -1,6 +1,9 @@
-#include "utils.cuh"
+#include "utils.h"
 
-#include <stdexcept>
+#include <iostream>
+
+
+#include <cuda_runtime.h>
 
 namespace cas
 {
@@ -239,19 +242,28 @@ __host__ void check_cuda_error_or_npp_status(const Type& error_or_status)
 {
     if(error_or_status)
     {
-
         if constexpr (std::is_same<Type, cudaError_t>())
         {
-            throw std::runtime_error(cudaGetErrorString(error_or_status));
+            std::clog<<cudaGetErrorString(error_or_status)<<std::endl;
         }
         else
         {
-            throw std::runtime_error(nppGetStatusString(error_or_status));
+            std::clog<<nppGetStatusString(error_or_status)<<std::endl;
         }
+        std::exit(EXIT_FAILURE);
     }
 }
 
 template void check_cuda_error_or_npp_status<cudaError_t>(const cudaError_t&);
 template void check_cuda_error_or_npp_status<NppStatus>(const NppStatus&);
+
+bool isDevicePointer(const void* ptr)
+{
+    cudaPointerAttributes attributes;
+    check_cuda_error_or_npp_status(cudaPointerGetAttributes(&attributes, ptr));
+    cudaError_t err = cudaPointerGetAttributes(&attributes, ptr);
+
+    return attributes.type != cudaMemoryTypeHost;
+}
 
 } // cas
