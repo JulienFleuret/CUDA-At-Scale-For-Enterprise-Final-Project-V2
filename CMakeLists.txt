@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.8)
 
 project(cudaAtScaleV2 LANGUAGES CXX)
 
+# Define an option for unit tests
+option(UNIT_TEST "Compile and run unit tests" OFF)
+
 # First set cuda.
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.17")
     find_package(CUDAToolkit REQUIRED)
@@ -100,3 +103,29 @@ target_link_libraries(cudaAtScaleV2 PRIVATE -lopencv_core -lopencv_imgcodecs -lo
 
 install(TARGETS cudaAtScaleV2
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+
+if(UNIT_TEST)
+
+    project(test LANGUAGES CXX)
+
+    enable_testing()
+
+    include_directories(test)
+
+    set(BIN_PWD ${CMAKE_SOURCE_DIR}/bin)
+
+    configure_file(${CMAKE_SOURCE_DIR}/test/test.in ${CMAKE_SOURCE_DIR}/test/test.cpp)
+
+    add_executable(unit_test test/test.cpp)
+
+    set_target_properties(unit_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
+
+    target_include_directories(unit_test PRIVATE ${OpenCV_INCLUDE_DIRS})
+    target_link_directories(unit_test PRIVATE ${OpenCV_INCLUDE_DIRS}/../../lib)
+    target_link_libraries(unit_test PRIVATE -lopencv_core -lopencv_imgcodecs -lopencv_quality -lopencv_videoio)
+
+    add_test(NAME run_unit_test COMMAND ${CMAKE_SOURCE_DIR}/bin/unit_test.exe)
+
+endif()

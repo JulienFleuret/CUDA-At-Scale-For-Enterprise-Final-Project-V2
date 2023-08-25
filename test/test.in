@@ -22,7 +22,7 @@ int main()
 		
 //		String pwd = cv::utils::fs::getcwd();
 
-		String pwd = "/media/smile/3FA6E701592EA94E/prog/cudaAtScaleV2/bin";
+		String pwd = "@BIN_PWD@";
 
 		std::cout<<"PWD: "<<pwd<<std::endl<<std::flush;
 
