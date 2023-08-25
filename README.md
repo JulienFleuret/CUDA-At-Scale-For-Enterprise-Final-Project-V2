@@ -9,12 +9,12 @@ It create a command line funtion named ```cudaAtScaleV2.exe```.
 ### Arguments for ```cudaAtScaleV2.exe```:
 - `-h`, `-help`, `-usage`, or `-?`: Print help.
 - `-input`,`-i`, or `-if` : specify the input which can be:
- - a video file (e.g. smth.avi, anthg.mp4).
- - a video stream (eg. protocol://host:port/script_name?script_params|auth).
- - an image sequence (eg. img_%02d.jpg)
+  - a video file (e.g. smth.avi, anthg.mp4).
+  - a video stream (eg. protocol://host:port/script_name?script_params|auth).
+  - an image sequence (eg. img_%02d.jpg)
 - `-output`,`-o`, or `-of` : specify the input which can be:
- - a video file (e.g. smth.avi, anthg.mp4).
- - an image sequence (eg. img_%02d.jpg)
+  - a video file (e.g. smth.avi, anthg.mp4).
+  - an image sequence (eg. img_%02d.jpg)
 - `-batch_size`, or `-bs`: (optional, default: -1) batch size to use for the computations.
 
 ## Code Organization
