@@ -26,7 +26,7 @@ int main()
 
 		std::cout<<"PWD: "<<pwd<<std::endl<<std::flush;
 
-		String execute_bin = format("%s/cudaAtScaleV2.exe --input=/usr/share/doc/opencv-doc/examples/data/left%%02d.jpg --output=%s/../data/test_tgt/unit_left_%%02d.jpg", pwd.c_str(), pwd.c_str());
+		String execute_bin = format("%s/cudaAtScaleV2.exe --input=%s/../data/test/left%%02d.jpg --output=%s/../data/test_tgt/unit_left_%%02d.jpg", pwd.c_str(), pwd.c_str(), pwd.c_str());
 		
 		std::system(execute_bin.c_str());
 		
