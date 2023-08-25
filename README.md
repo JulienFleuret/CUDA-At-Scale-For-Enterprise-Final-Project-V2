@@ -3,7 +3,7 @@ The second project I did for the module "CUDA at Scale for Enterprise" from Cour
 
 ## Project Description
 
-This project simply computes the magnitude of a Soble filter. The Directional filters are computed using NPPI, while the magnitude is computed thank to a custom lambda provided to a custom kernel.
+This project load an image sequence, a set of images, or a video stream and process the magnitude of its images after filtering them using horizontal and vertical Sobel filter. The processing is made in batches. First, each image is filtered independently by the Sobel filters (using NPPI). The result of each filters is placed into a batch, (one batch per direction). The batches are full the magnitude of all the images of the batch is computed at once. Finaly the images are are written either in a video file or in a folder depending on the arguments provided to the function.
 It create a command line funtion named ```cudaAtScaleV2.exe```.
 
 ### Arguments for ```cudaAtScaleV2.exe```:
