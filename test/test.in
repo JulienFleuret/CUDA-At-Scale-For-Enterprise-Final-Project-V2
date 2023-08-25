@@ -13,8 +13,9 @@ using namespace cv;
 
 int main()
 {
+
 // The machine behind Github action does not have NVIDIA hardware :(
-#ifndef GITHUB_ACTION
+#ifdef NO_GITHUB_ACTION
 	try{
 		
 		if(!cv::utils::fs::exists("/usr/share/doc/opencv-doc"))
