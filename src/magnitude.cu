@@ -5,7 +5,7 @@
 #include <cuda_runtime.h>
 
 #include <iostream>
-
+#include <filesystem>
 
 // Convinient because some arithmetic functions on half type
 // are only available for achitecture 530 and above.
@@ -347,12 +347,13 @@ void compute_magnitude_by_batch_t::init(const String &input, const String &outpu
             this->load.set(CAP_PROP_POS_FRAMES, 0.);
         }
 
+
         bool save_open;
 
         // Initialization of the output streaming object.
         if(output.find("%") != String::npos)
         {
-            save_open = this->save.open(output, 0 , fps, Size(cols, rows), false);
+            save_open = this->save.open(output, CAP_IMAGES, 0 , 0., Size(cols, rows), false);
         }
         else
         {

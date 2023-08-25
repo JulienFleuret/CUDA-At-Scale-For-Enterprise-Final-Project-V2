@@ -91,6 +91,14 @@ int main(int argc, char* argv[])
         // The filename is then added to the output.
         output = utils::fs::join(output, filename);
     }
+    else if (!utils::fs::exists(utils::fs::getParent(output)))
+    {
+        if(!utils::fs::createDirectories(utils::fs::getParent(output)))
+        {
+            std::clog<<"Impossible To Create Output Directories or Directory"<<std::endl;
+            return EXIT_FAILURE;
+        }
+    }
 
     // Create the working object.
     auto obj = compute_magnitude_by_batch_t::create();
