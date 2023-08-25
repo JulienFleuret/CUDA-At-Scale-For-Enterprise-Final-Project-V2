@@ -4,6 +4,7 @@ project(cudaAtScaleV2 LANGUAGES CXX)
 
 # Define an option for unit tests
 option(UNIT_TEST "Compile and run unit tests" OFF)
+option(GITHUB_ACTION "Set a define during the compilation of the test unit to pass the action" OFF)
 
 # First set cuda.
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.17")
@@ -125,6 +126,10 @@ if(UNIT_TEST)
     target_include_directories(unit_test PRIVATE ${OpenCV_INCLUDE_DIRS})
     target_link_directories(unit_test PRIVATE ${OpenCV_INCLUDE_DIRS}/../../lib)
     target_link_libraries(unit_test PRIVATE -lopencv_core -lopencv_imgcodecs -lopencv_quality -lopencv_videoio)
+
+    if(GITHUB_ACTION)
+        add_definitions(-DGITHUB_ACTION)
+    endif()
 
     add_test(NAME run_unit_test COMMAND ${CMAKE_SOURCE_DIR}/bin/unit_test.exe)
 
