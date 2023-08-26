@@ -45,6 +45,9 @@ Run this file in order to compile the project.
 
 Other than CUDA and NPPI this project requires OpenCV.
 Unless you are comfortable with working with custom OpenCV versions it is advanced when available to use OpenCV's version of the package manager.
-Ubuntu's apt has libopencv-dev which fits the requirement of this project.
+Ubuntu's apt has ```libopencv-dev``` which fits the requirement of this project.
 
 For one who want to try to use an image sequence as input, please keep in mind that if the formating of your files is interupted (e.g. left01.jpg,..., left.09.jpg, left11.jpg,...left14.jpg), only the files before the interuption will be seen.
+
+For someone working in ubuntu the package ```opencv-doc``` will install the OpenCV's sample folder at this location: ```/usr/share/doc/opencv-doc/examples/data/```.
+You can try for instance ```./bin/cudaAtScaleV2.exe --input=/usr/share/doc/opencv-doc/examples/data/left%02d.jpg --output=wherever/you/whish/result%02.jpg``` 
