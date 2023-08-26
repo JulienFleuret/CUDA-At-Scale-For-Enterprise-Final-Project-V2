@@ -128,7 +128,7 @@ if(UNIT_TEST)
     target_link_libraries(unit_test PRIVATE -lopencv_core -lopencv_imgcodecs -lopencv_quality -lopencv_videoio)
 
     if(NO_GITHUB_ACTION)
-        add_definitions(-DNO_GITHUB_ACTION)
+        add_definitions(-DNGA)
     endif()
 
     add_test(NAME run_unit_test COMMAND ${CMAKE_SOURCE_DIR}/bin/unit_test.exe)

@@ -15,7 +15,8 @@ int main()
 {
 
 // The machine behind Github action does not have NVIDIA hardware :(
-#ifdef NO_GITHUB_ACTION
+#ifdef NGA // not a github action.
+std::clog<<"NGA"<<std::endl;
 	try{
 		
 		if(!cv::utils::fs::exists("/usr/share/doc/opencv-doc"))
@@ -28,7 +29,6 @@ int main()
 
 		String pwd = "@BIN_PWD@";
 
-		std::cout<<"PWD: "<<pwd<<std::endl<<std::flush;
 
 		String execute_bin = format("%s/cudaAtScaleV2.exe --input=%s/../data/test/left%%02d.jpg --output=%s/../data/test_tgt/unit_left_%%02d.jpg", pwd.c_str(), pwd.c_str(), pwd.c_str());
 		
