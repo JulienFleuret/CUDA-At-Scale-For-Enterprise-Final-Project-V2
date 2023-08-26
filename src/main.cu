@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     // If the input does not exists and is not a formating (i.e. img%02d.jpg)
     if(!utils::fs::exists(input) && (input.find("%") == String::npos))
     {
-        clog<<"The Specified Input File Does Exists"<<std::endl;
+        clog<<"The Specified Input File Does Not Exists"<<std::endl;
         return EXIT_SUCCESS;
     }
 
