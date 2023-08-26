@@ -40,5 +40,3 @@ Configuration file.
 ```run.sh```
 Run this file in order to compile the project.
 
-```Dockerfile```
-Docker image.
