@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 project(cudaAtScaleV2 LANGUAGES CXX)
 
+
 # Define an option for unit tests
 option(UNIT_TEST "Compile and run unit tests" OFF)
 option(NO_GITHUB_ACTION "Set a define during the compilation of the test unit to pass the action" OFF)

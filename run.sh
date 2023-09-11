@@ -6,7 +6,7 @@ cd build
 
 if [ $# -eq 0 ]
   then
-	make -j && ctest -R run_unit_test -V && cmake .. -DUNIT_TEST=ON
+	cmake .. -DUNIT_TEST=ON && make -j && ctest -R run_unit_test -V
 fi
 
 
