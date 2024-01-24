@@ -3,8 +3,8 @@ The second project I did for the module "CUDA at Scale for Enterprise" from Cour
 
 ## Project Description
 
-This project load an image sequence, a set of images, or a video stream and process the magnitude of its images after filtering them using horizontal and vertical Sobel filter. The processing is made in batches. First, each image is filtered independently by the Sobel filters (using NPPI). The result of each filters is placed into a batch, (one batch per direction). The batches are full the magnitude of all the images of the batch is computed at once. Finaly the images are are written either in a video file or in a folder depending on the arguments provided to the function.
-It create a command line funtion named ```cudaAtScaleV2.exe```.
+This project loads an image sequence, a set of images, or a video stream and processes the magnitude of its images after filtering them using horizontal and vertical Sobel filters. The processing is made in batches. First, each image is filtered independently by the Sobel filters (using NPPI). The result of each filter is placed into a batch, (one batch per direction). The batches are full the magnitude of all the images of the batch is computed at once. Finally the images are written either in a video file or in a folder depending on the arguments provided to the function.
+It creates a command line function named ```cudaAtScaleV2.exe```.
 
 ### Arguments for ```cudaAtScaleV2.exe```:
 - `-h`, `-help`, `-usage`, or `-?`: Print help.
@@ -20,19 +20,19 @@ It create a command line funtion named ```cudaAtScaleV2.exe```.
 ## Code Organization
 
 ```bin/```
-This folder will only exist once the project is compiled, and will contains: ```cudaAtScaleV2.exe``` and ```unit_test.exe``` if the unit test was build.
+This folder will only exist once the project is compiled, and will contain: ```cudaAtScaleV2.exe``` and ```unit_test.exe``` if the unit test was built.
 
 ```data/```
-This folder contains few images, which originally comes from the data folder of the sample folder of the legacy modules of OpenCV (i.e. from [here](https://github.com/opencv/opencv/tree/4.x/samples/data) )
+This folder contains a few images, which originally came from the data folder of the sample folder of the legacy modules of OpenCV (i.e. from [here](https://github.com/opencv/opencv/tree/4.x/samples/data) )
 
 ```src/```
 All the files that this project depends on are here.
 
 ```test/```
-All the files that related to the build of the unit test.
+All the files related to the build of the unit test.
 
 ```INSTALL```
-This files gives some advise regarding how to install the dependencies of this project (i.e. CUDA, NPPI, OpenCV).
+This file gives some advice regarding how to install the dependencies of this project (i.e. CUDA, NPPI, OpenCV).
 
 ```CMAkeLists.txt```
 Configuration file.
@@ -47,7 +47,7 @@ Other than CUDA and NPPI this project requires OpenCV.
 Unless you are comfortable with working with custom OpenCV versions it is advised when available to use OpenCV's version of the package manager.
 Ubuntu's `apt` has ```libopencv-dev``` which fits the requirement of this project.
 
-For one who want to try to use an image sequence as input, please keep in mind that if the formating of your files is interupted (e.g. left01.jpg,..., left.09.jpg, left11.jpg,...left14.jpg), only the files before the interuption will be seen.
+For one who wants to try to use an image sequence as input, please keep in mind that if the formatting of your files is interrupted (e.g. `left01.jpg`,..., `left.09.jpg`, `left11.jpg`,...,`left14.jpg`), only the files before the interruption will be seen.
 
 For someone working in ubuntu the package ```opencv-doc``` will install the OpenCV's sample folder at this location: ```/usr/share/doc/opencv-doc/examples/data/```.
 You can try for instance ```./bin/cudaAtScaleV2.exe --input=/usr/share/doc/opencv-doc/examples/data/left%02d.jpg --output=wherever/you/whish/result%02.jpg``` 
