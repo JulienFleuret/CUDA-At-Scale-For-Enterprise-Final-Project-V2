@@ -3,7 +3,7 @@ The second project I did for the module "CUDA at Scale for Enterprise" from Cour
 
 ## Project Description
 
-This project loads an image sequence, a set of images, or a video stream and processes the magnitude of its images after filtering them using horizontal and vertical Sobel filters. The processing is made in batches. First, each image is filtered independently by the Sobel filters (using NPPI). The result of each filter is placed into a batch, (one batch per direction). The batches are full the magnitude of all the images of the batch is computed at once. Finally the images are written either in a video file or in a folder depending on the arguments provided to the function.
+This project loads an image sequence, a set of images, or a video stream and processes the magnitude of its images after filtering them using horizontal and vertical Sobel filters. The processing is made in batches. First, each image is filtered independently by the Sobel filters (using NPPI). The result of each filter is placed into a batch, (one batch per direction). Once all the images of the batch have been filtered the magnitude of the batch is computed at once. Finally the images are written either in a video file or in a folder depending on the arguments provided to the function.
 It creates a command line function named ```cudaAtScaleV2.exe```.
 
 ### Arguments for ```cudaAtScaleV2.exe```:
